@@ -156,7 +156,7 @@ const Sidebar = () => {
       >
         <div className="flex flex-col p-4">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+            <h1 className="text-lg font-semibold text-white">Dashboard</h1>
             <Button
               variant="ghost"
               className="md:hidden p-1"
