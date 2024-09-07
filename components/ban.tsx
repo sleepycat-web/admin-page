@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 const BanComp = () => {
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Ban</h1>
+      <h1 className="text-lg font-semibold">Ban</h1>
       <div className="flex space-x-2">
         <Input
           className="flex-grow"

@@ -2,8 +2,10 @@ import React from 'react'
 
 const AnalyticsComp = () => {
   return (
-    <div>Analytics</div>
-  )
+    <div>
+      <h1 className="text-lg font-semibold">Analytics</h1>
+    </div>
+  );
 }
 
 export default AnalyticsComp
