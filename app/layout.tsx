@@ -1,7 +1,6 @@
 // layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
+ import "./globals.css";
 import ClientLayout from "./clientlayout";
 import { ThemeProvider } from "../components/ui/theme-provider";
 

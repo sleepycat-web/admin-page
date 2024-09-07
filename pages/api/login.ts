@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "POST") {
-    const { username, password, location } = req.body;
+    const { username, password } = req.body;
 
     const envUsername = process.env.ADMIN_APP_USERNAME;
     const envPassword = process.env.ADMIN_APP_PASSWORD;
