@@ -1,5 +1,6 @@
 import { MongoClient } from "mongodb";
 
+// Declare the _mongoClientPromise variable in the global scope
 declare global {
   var _mongoClientPromise: Promise<MongoClient>;
 }
