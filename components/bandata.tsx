@@ -1,8 +1,6 @@
 import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-
 import { CaretSortIcon } from "@radix-ui/react-icons";
 import {
   ColumnDef,
@@ -16,7 +14,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-
 import {
   Table,
   TableBody,
@@ -25,42 +22,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Loader2 } from "lucide-react";
 
-const data: Payment[] = [
-  {
-    number: "991231",
-    name: "ken99@yahoo.com",
-    date: "2024-01-12",
-  },
-  {
-    number: "293123123",
-    name: "Abe45@gmail.com",
-    date: "2021-12-12",
-  },
-  {
-    number: "83192312",
-    name: "Monserrat44@gmail.com",
-    date: "2021-12-12",
-  },
-  {
-    number: "999123",
-    name: "Silas22@gmail.com",
-    date: "2021-12-12",
-  },
-  {
-    number: "8392323",
-    name: "carmella@hotmail.com",
-    date: "2021-12-12",
-  },
-];
-
-export type Payment = {
-  number: string;
+type BannedUser = {
   name: string;
-  date: string;
+  phoneNumber: string;
+  banDate: string;
 };
 
-export const columns: ColumnDef<Payment>[] = [
+const columns: ColumnDef<BannedUser>[] = [
   {
     accessorKey: "name",
     header: ({ column }) => {
@@ -75,21 +45,16 @@ export const columns: ColumnDef<Payment>[] = [
       );
     },
     cell: ({ row }) => <div className="">{row.getValue("name")}</div>,
-    sortingFn: (rowA, rowB, columnId) => {
-      const a = (rowA.getValue(columnId) as string).toLowerCase();
-      const b = (rowB.getValue(columnId) as string).toLowerCase();
-      return a.localeCompare(b);
-    },
   },
   {
-    accessorKey: "number",
-    header: "Number",
+    accessorKey: "phoneNumber",
+    header: "Phone Number",
     cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("number")}</div>
+      <div className="capitalize">{row.getValue("phoneNumber")}</div>
     ),
   },
   {
-    accessorKey: "date",
+    accessorKey: "banDate",
     header: ({ column }) => {
       return (
         <Button
@@ -102,34 +67,48 @@ export const columns: ColumnDef<Payment>[] = [
       );
     },
     cell: ({ row }) => {
-      const date = new Date(row.getValue("date"));
+      const date = new Date(row.getValue("banDate"));
       const options: Intl.DateTimeFormatOptions = {
         day: "numeric",
         month: "long",
         year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       };
       return (
-        <div>{date.toLocaleDateString("en-US", options).replace(",", "")}</div>
+        <div>{date.toLocaleString("en-US", options).replace(",", "")}</div>
       );
-    },
-    sortingFn: (rowA, rowB, columnId) => {
-      const a = new Date(rowA.getValue(columnId) as string);
-      const b = new Date(rowB.getValue(columnId) as string);
-      return a.getTime() - b.getTime();
     },
   },
 ];
 
 export function DataTableDemo() {
-  const [sorting, setSorting] = React.useState<SortingState>([
-    { id: "name", desc: false },
-  ]);
+  const [data, setData] = React.useState<BannedUser[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+
+  React.useEffect(() => {
+    const fetchBannedUsers = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/getBannedUsers");
+        const bannedUsers = await response.json();
+        setData(bannedUsers);
+      } catch (error) {
+        console.error("Error fetching banned users:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBannedUsers();
+  }, []);
 
   const table = useReactTable({
     data,
@@ -154,7 +133,7 @@ export function DataTableDemo() {
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Search"
+          placeholder="Filter names..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("name")?.setFilterValue(event.target.value)
@@ -183,7 +162,16 @@ export function DataTableDemo() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -219,7 +207,7 @@ export function DataTableDemo() {
 const BanDataComp = () => {
   return (
     <div>
-     <h1 className="text-lg font-semibold"> Ban Data</h1>
+      <h1 className="text-lg font-semibold md:block hidden">Banned Users</h1>
       <DataTableDemo />
     </div>
   );

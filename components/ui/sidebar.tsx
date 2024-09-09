@@ -45,7 +45,6 @@ interface NavButtonProps {
   label: string;
   isActive: boolean;
   onClick: () => void;
-  indent?: boolean;
 }
 
 const Sidebar = () => {
@@ -88,17 +87,14 @@ const Sidebar = () => {
     label,
     isActive,
     onClick,
-    indent = false,
   }) => (
     <Button
       variant="ghost"
-      className={`w-full justify-start ${isActive ? "bg-neutral-800" : ""} ${
-        indent ? "pl-8" : ""
-      }`}
+      className={`w-full justify-start ${isActive ? "bg-neutral-800" : ""}`}
       onClick={onClick}
     >
       {icon}
-      {label}
+      <span className="ml-2">{label}</span>
     </Button>
   );
 
@@ -106,99 +102,99 @@ const Sidebar = () => {
     icon: React.ReactNode;
     label: string;
     component: ComponentType;
-    children?: Array<{
-      icon: React.ReactNode;
-      label: string;
-      component: ComponentType;
-    }>;
   }> = [
     {
-      icon: <ChartColumn className="mr-2 h-4 w-4" />,
+      icon: <ChartColumn className="h-4 w-4" />,
       label: "Analytics",
       component: "analytics",
     },
     {
-      icon: <BanIcon className="mr-2 h-4 w-4" />,
+      icon: <BanIcon className="h-4 w-4" />,
       label: "Ban",
       component: "ban",
-      children: [
-        {
-          icon: <DatabaseIcon className="mr-2 h-4 w-4" />,
-          label: "Ban Data",
-          component: "banData",
-        },
-      ],
+    },
+    {
+      icon: <DatabaseIcon className="h-4 w-4" />,
+      label: "Ban Data",
+      component: "banData",
     },
   ];
 
-  return (
-    <div className="flex h-screen">
-      {/* Hamburger menu for mobile */}
-      <div className="md:hidden">
-        <Button
-          variant="ghost"
-          className="p-2 m-2"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          <MenuIcon className="h-6 w-6" />
-        </Button>
-      </div>
+  const getActiveComponentLabel = () => {
+    return (
+      navItems.find((item) => item.component === activeComponent)?.label || ""
+    );
+  };
 
-      {/* Sidebar for desktop and mobile menu */}
+  return (
+    <div className="flex flex-col h-screen">
+      {/* Horizontal sidebar for mobile */}
       <div
         ref={sidebarRef}
         className={`
-          fixed md:relative z-10 w-52 h-full bg-neutral-900
-          transition-transform ease-in-out
-          ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0
+          md:hidden bg-neutral-900 transition-all  overflow-hidden
+          ${isMobileMenuOpen ? "y" : "h-16 duration-300 ease-in-out"}
         `}
       >
-        <div className="flex flex-col p-4">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-lg font-semibold text-white">Dashboard</h1>
-            <Button
-              variant="ghost"
-              className="md:hidden p-1"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
+        <div className="flex justify-between items-center p-4">
+          <h1 className="md:text-xl text-lg font-semibold text-white">
+            {getActiveComponentLabel()}
+          </h1>
+          <Button
+            variant="ghost"
+            className="p-1"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
               <XIcon className="h-6 w-6" />
-            </Button>
-          </div>
+            ) : (
+              <MenuIcon className="h-6 w-6" />
+            )}
+          </Button>
+        </div>
+        {isMobileMenuOpen && (
+          <nav className="px-4 pb-4 space-y-2">
+            {navItems.map((item) => (
+              <NavButton
+                key={item.component}
+                icon={item.icon}
+                label={item.label}
+                isActive={activeComponent === item.component}
+                onClick={() => {
+                  setActiveComponent(item.component);
+                  setIsMobileMenuOpen(false);
+                }}
+              />
+            ))}
+          </nav>
+        )}
+      </div>
+
+      {/* Vertical sidebar for desktop */}
+      <div className="hidden md:flex md:h-screen">
+        <div className="w-52 bg-neutral-900 p-4">
+          <h1 className="text-xl font-semibold text-white mb-4">Dashboard</h1>
           <nav className="space-y-2">
             {navItems.map((item) => (
-              <React.Fragment key={item.component}>
-                <NavButton
-                  icon={item.icon}
-                  label={item.label}
-                  isActive={activeComponent === item.component}
-                  onClick={() => {
-                    setActiveComponent(item.component);
-                    setIsMobileMenuOpen(false);
-                  }}
-                />
-                {item.children &&
-                  item.children.map((child) => (
-                    <NavButton
-                      key={child.component}
-                      icon={child.icon}
-                      label={child.label}
-                      isActive={activeComponent === child.component}
-                      onClick={() => {
-                        setActiveComponent(child.component);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      indent
-                    />
-                  ))}
-              </React.Fragment>
+              <NavButton
+                key={item.component}
+                icon={item.icon}
+                label={item.label}
+                isActive={activeComponent === item.component}
+                onClick={() => setActiveComponent(item.component)}
+              />
             ))}
           </nav>
         </div>
+
+        {/* Main content */}
+        <ContentWrapper className="flex-1 p-4">
+          {renderComponent()}
+        </ContentWrapper>
       </div>
 
-      {/* Main content */}
-      <ContentWrapper className="flex-1 p-4 ">
+      {/* Main content for mobile */}
+      <ContentWrapper className="md:hidden flex-1 p-4">
         {renderComponent()}
       </ContentWrapper>
     </div>
