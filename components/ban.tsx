@@ -121,8 +121,6 @@ const BanComp: React.FC = () => {
     return new Date(dateString)
       .toLocaleString("en-US", options)
       .replace(",", "");
-
-
   };
 
   return (
@@ -137,6 +135,8 @@ const BanComp: React.FC = () => {
           value={phoneNumber}
           onChange={handlePhoneNumberChange}
           maxLength={10}
+          type="tel"
+          inputMode="numeric"
         />
         <Button variant="secondary" onClick={handleCheck} disabled={isLoading}>
           {isLoading ? "Checking..." : "Check"}
@@ -166,7 +166,12 @@ const BanComp: React.FC = () => {
                 <Label htmlFor="status" className="font-semibold">
                   Ban Status
                 </Label>
-                <Label htmlFor="status-value">
+                <Label
+                  htmlFor="status-value"
+                  className={
+                    userData.banStatus ? "text-red-500" : "text-green-500"
+                  }
+                >
                   {userData.banStatus ? "Banned" : "Not Banned"}
                 </Label>
               </div>

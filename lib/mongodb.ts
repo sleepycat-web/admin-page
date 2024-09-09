@@ -8,14 +8,10 @@ if (!uri) {
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
-
-
 export async function connectToDatabase() {
- 
-    // In production mode, it's best to not use a global variable
-    client = new MongoClient(uri);
-    clientPromise = client.connect();
-  
+  // In production mode, it's best to not use a global variable
+  client = new MongoClient(uri);
+  clientPromise = client.connect();
 
   return {
     db: (await clientPromise).db("ChaiMine"),
