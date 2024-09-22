@@ -9,6 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import InsightsComponent from "./insights";
+import { Loader2 } from "lucide-react"; // Import the Loader2 icon
+
 // These would be separate components in real implementation
 const ExpensesComponent = () => <div>Expenses Component</div>;
 const OrdersComponent = () => <div>Orders Component</div>;
@@ -25,16 +27,20 @@ const Dashboard = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [growthPercentage, setGrowthPercentage] = useState<number | null>(null);
   const [totalOrders, setTotalOrders] = useState(0);
-  const [orderGrowthPercentage, setOrderGrowthPercentage] = useState<
-    number | null
-  >(null);
-  const [newSignups, setNewSignups] = useState(0); // New state for sign-ups
+ const [orderGrowthPercentage, setOrderGrowthPercentage] = useState<
+   number | null
+ >(null);
+
+   const [newSignups, setNewSignups] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
   }, [dateRange, selectedBranch]);
 
    const fetchData = async () => {
+     setIsLoading(true);
+
      try {
        const { start, end } = dateRange;
        const previousStart = new Date(
@@ -47,8 +53,8 @@ const Dashboard = () => {
            "Content-Type": "application/json",
          },
          body: JSON.stringify({
-           startDate: start.toISOString(),
-           endDate: end.toISOString(),
+           startDate: start.toISOString(), // Ensure correct formatting
+           endDate: end.toISOString(), // Ensure correct formatting
            branch: selectedBranch,
            previousStartDate: previousStart.toISOString(),
            previousEndDate: start.toISOString(),
@@ -61,16 +67,17 @@ const Dashboard = () => {
          data.growthPercentage !== undefined ? data.growthPercentage : null
        );
        setTotalOrders(data.totalOrders);
-       setOrderGrowthPercentage(
-         data.orderGrowthPercentage !== undefined
-           ? data.orderGrowthPercentage
-           : null
-       );
-       setNewSignups(data.newSignups);
+       setOrderGrowthPercentage(data.orderGrowthPercentage);
+
+       // Here, ensure new signups are updated correctly
+       setNewSignups(data.newSignups); // Ensure the state is updated correctly
      } catch (error) {
        console.error("Error fetching dashboard data:", error);
+     } finally {
+       setIsLoading(false);
      }
    };
+
   const handleDateRangeChange = (value: string) => {
     const end = today;
     let start = new Date(today);
@@ -164,19 +171,32 @@ const Dashboard = () => {
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{totalRevenue.toFixed(2)}</div>
-            {getGrowthDisplay(growthPercentage, "revenue")}
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <div className="text-2xl font-bold">
+                ₹{totalRevenue.toFixed(2)}
+              </div>
+            )}
+            {!isLoading && getGrowthDisplay(growthPercentage, "revenue")}
           </CardContent>
+          
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalUsers}</div>
-            <p className="text-xs text-muted-foreground">
-              {newSignups} new sign-ups in the last time preiod
-            </p>
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{totalUsers}</div>
+                <p className="text-xs text-muted-foreground">
+                  {newSignups} new sign-ups in the last time period
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -184,8 +204,14 @@ const Dashboard = () => {
             <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalOrders}</div>
-            {getGrowthDisplay(orderGrowthPercentage, "orders")}
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{totalOrders}</div>
+                {getGrowthDisplay(orderGrowthPercentage, "orders")}
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -195,8 +221,8 @@ const Dashboard = () => {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Branches</SelectItem>
-          <SelectItem value="sevoke">Sevoke Road</SelectItem>
-          <SelectItem value="dagapur">Dagapur</SelectItem>
+          <SelectItem value="Sevoke">Sevoke Road</SelectItem>
+          <SelectItem value="Dagapur">Dagapur</SelectItem>
         </SelectContent>
       </Select>
       <Tabs defaultValue="insights" className="w-full">

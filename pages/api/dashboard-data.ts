@@ -6,6 +6,7 @@ interface SalesDataPoint {
   date: string;
   revenue: number;
   orders: number;
+  expenses: number;
   branch: string;
 }
 
@@ -15,6 +16,7 @@ interface DashboardData {
   totalOrders: number;
   salesData: SalesDataPoint[];
   growthPercentage: number | null;
+  orderGrowthPercentage: number | null;
   newSignups: number;
 }
 
@@ -32,29 +34,36 @@ export default async function handler(
       // Calculate total users
       const totalUsers = await db.collection("UserData").countDocuments();
 
-      // Calculate new signups
-     const newSignups = await db.collection("UserData").countDocuments({
-       signupDate: {
-         $gte: new Date(startDate),
-         $lte: new Date(endDate),
-       },
-     });
+      // Calculate new signups for the selected date range
+      const newSignups = await db.collection("UserData").countDocuments({
+        signupDate: {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        },
+      });
+
       // Calculate current period data
       const { totalRevenue, totalOrders, salesData } =
-        await calculateRevenueAndOrders(db, startDate, endDate, branch);
+        await calculateRevenueOrdersAndExpenses(db, startDate, endDate, branch);
 
       // Calculate previous period data
-      const { totalRevenue: previousRevenue } = await calculateRevenueAndOrders(
-        db,
-        previousStartDate,
-        previousEndDate,
-        branch
-      );
+      const { totalRevenue: previousRevenue, totalOrders: previousOrders } =
+        await calculateRevenueOrdersAndExpenses(
+          db,
+          previousStartDate,
+          previousEndDate,
+          branch
+        );
 
-      // Calculate growth percentage
+      // Calculate growth percentages
       const growthPercentage =
         previousRevenue !== 0
           ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
+          : null;
+
+      const orderGrowthPercentage =
+        previousOrders !== 0
+          ? ((totalOrders - previousOrders) / previousOrders) * 100
           : null;
 
       const response: DashboardData = {
@@ -63,6 +72,7 @@ export default async function handler(
         totalOrders,
         salesData,
         growthPercentage,
+        orderGrowthPercentage,
         newSignups,
       };
 
@@ -77,7 +87,7 @@ export default async function handler(
   }
 }
 
-async function calculateRevenueAndOrders(
+async function calculateRevenueOrdersAndExpenses(
   db: Db,
   startDate: string,
   endDate: string,
@@ -89,7 +99,7 @@ async function calculateRevenueAndOrders(
 }> {
   let totalRevenue = 0;
   let totalOrders = 0;
-  const salesData: SalesDataPoint[] = [];
+  const salesDataMap: { [key: string]: SalesDataPoint } = {};
 
   const startDateTime = new Date(
     new Date(startDate).toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
@@ -104,55 +114,73 @@ async function calculateRevenueAndOrders(
     order: "dispatched",
   };
 
+  const expenseQuery = {
+    createdAt: { $gte: startDateTime, $lte: endDateTime },
+    category: { $ne: "UPI payment" },
+  };
+
   const branches = branch === "all" ? ["Sevoke", "Dagapur"] : [branch];
 
   for (const branchName of branches) {
-    const collectionName = `Order${branchName}`;
+    const orderCollectionName = `Order${branchName}`;
+    const expenseCollectionName = `Expense${branchName}`;
+
+    // Fetch orders
     const orders = await db
-      .collection(collectionName)
+      .collection(orderCollectionName)
       .find(orderQuery)
       .toArray();
 
-    const branchRevenue = orders.reduce(
-      (sum: number, order: any) => sum + order.total,
-      0
-    );
-    totalRevenue += branchRevenue;
-    totalOrders += orders.length;
+    // Fetch expenses
+    const expenses = await db
+      .collection(expenseCollectionName)
+      .find(expenseQuery)
+      .toArray();
 
-    // Group sales data by date
-    const branchSalesData = orders.reduce(
-      (
-        acc: { [key: string]: { revenue: number; orders: number } },
-        order: any
-      ) => {
-        const date = new Date(order.createdAt)
-          .toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-          .split(",")[0];
-        if (!acc[date]) {
-          acc[date] = { revenue: 0, orders: 0 };
-        }
-        acc[date].revenue += order.total;
-        acc[date].orders += 1;
-        return acc;
-      },
-      {}
-    );
-
-    Object.entries(branchSalesData).forEach(([date, data]) => {
-      salesData.push({
-        date,
-        revenue: data.revenue,
-        orders: data.orders,
-        branch: branchName,
+    orders.forEach((order: any) => {
+      const date = new Date(order.createdAt).toLocaleDateString("en-US", {
+        timeZone: "Asia/Kolkata",
       });
+
+      if (!salesDataMap[date]) {
+        salesDataMap[date] = {
+          date,
+          revenue: 0,
+          orders: 0,
+          expenses: 0,
+          branch: branchName,
+        };
+      }
+
+      salesDataMap[date].revenue += order.total;
+      salesDataMap[date].orders += 1;
+      totalRevenue += order.total;
+      totalOrders += 1;
+    });
+
+    expenses.forEach((expense: any) => {
+      const date = new Date(expense.createdAt).toLocaleDateString("en-US", {
+        timeZone: "Asia/Kolkata",
+      });
+
+      if (!salesDataMap[date]) {
+        salesDataMap[date] = {
+          date,
+          revenue: 0,
+          orders: 0,
+          expenses: 0,
+          branch: branchName,
+        };
+      }
+
+      salesDataMap[date].expenses += expense.amount;
     });
   }
 
-  // Sort salesData by date
-  salesData.sort(
+  // Convert salesDataMap object to array and sort by date
+  const sortedSalesData = Object.values(salesDataMap).sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
-  return { totalRevenue, totalOrders, salesData };
+  return { totalRevenue, totalOrders, salesData: sortedSalesData };
 }

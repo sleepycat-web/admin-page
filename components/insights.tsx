@@ -20,6 +20,7 @@ interface SalesDataPoint {
   date: string;
   revenue: number;
   orders: number;
+  expenses: number;
   branch: string;
 }
 
@@ -27,6 +28,7 @@ interface AggregatedSalesDataPoint {
   date: string;
   revenue: number;
   orders: number;
+  expenses: number;
 }
 
 interface InsightsComponentProps {
@@ -76,10 +78,16 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
 
     data.forEach((point) => {
       if (!aggregated[point.date]) {
-        aggregated[point.date] = { date: point.date, revenue: 0, orders: 0 };
+        aggregated[point.date] = {
+          date: point.date,
+          revenue: 0,
+          orders: 0,
+          expenses: 0,
+        };
       }
       aggregated[point.date].revenue += point.revenue;
       aggregated[point.date].orders += point.orders;
+      aggregated[point.date].expenses += point.expenses;
     });
 
     return Object.values(aggregated).sort(
@@ -96,7 +104,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Sales and Orders Overview</CardTitle>
+          <CardTitle>Sales, Orders, and Expenses Overview</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -122,11 +130,17 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
                 stroke="#82ca9d"
                 name="Orders"
               />
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="expenses"
+                stroke="#6A8FBF"
+                name="Expenses"
+              />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
-       
     </>
   );
 };
