@@ -8,8 +8,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 import InsightsComponent from "./insights";
-import { Loader2 } from "lucide-react"; // Import the Loader2 icon
+import { Loader2 } from "lucide-react";
+import { DateRange } from "react-day-picker";
 
 // These would be separate components in real implementation
 const ExpensesComponent = () => <div>Expenses Component</div>;
@@ -27,104 +37,119 @@ const Dashboard = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [growthPercentage, setGrowthPercentage] = useState<number | null>(null);
   const [totalOrders, setTotalOrders] = useState(0);
- const [orderGrowthPercentage, setOrderGrowthPercentage] = useState<
-   number | null
- >(null);
-
-   const [newSignups, setNewSignups] = useState(0);
+  const [orderGrowthPercentage, setOrderGrowthPercentage] = useState<
+    number | null
+  >(null);
+  const [newSignups, setNewSignups] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     fetchData();
   }, [dateRange, selectedBranch]);
 
-   const fetchData = async () => {
-     setIsLoading(true);
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const { start, end } = dateRange;
+      const previousStart = new Date(
+        start.getTime() - (end.getTime() - start.getTime())
+      );
 
-     try {
-       const { start, end } = dateRange;
-       const previousStart = new Date(
-         start.getTime() - (end.getTime() - start.getTime())
-       );
-
-       const response = await fetch("/api/dashboard-data", {
-         method: "POST",
-         headers: {
-           "Content-Type": "application/json",
-         },
-         body: JSON.stringify({
-           startDate: start.toISOString(), // Ensure correct formatting
-           endDate: end.toISOString(), // Ensure correct formatting
-           branch: selectedBranch,
-           previousStartDate: previousStart.toISOString(),
-           previousEndDate: start.toISOString(),
-         }),
-       });
-       const data = await response.json();
-       setTotalRevenue(data.totalRevenue);
-       setTotalUsers(data.totalUsers);
-       setGrowthPercentage(
-         data.growthPercentage !== undefined ? data.growthPercentage : null
-       );
-       setTotalOrders(data.totalOrders);
-       setOrderGrowthPercentage(data.orderGrowthPercentage);
-
-       // Here, ensure new signups are updated correctly
-       setNewSignups(data.newSignups); // Ensure the state is updated correctly
-     } catch (error) {
-       console.error("Error fetching dashboard data:", error);
-     } finally {
-       setIsLoading(false);
-     }
-   };
+      const response = await fetch("/api/dashboard-data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+          branch: selectedBranch,
+          previousStartDate: previousStart.toISOString(),
+          previousEndDate: start.toISOString(),
+        }),
+      });
+      const data = await response.json();
+      setTotalRevenue(data.totalRevenue);
+      setTotalUsers(data.totalUsers);
+      setGrowthPercentage(
+        data.growthPercentage !== undefined ? data.growthPercentage : null
+      );
+      setTotalOrders(data.totalOrders);
+      setOrderGrowthPercentage(data.orderGrowthPercentage);
+      setNewSignups(data.newSignups);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleDateRangeChange = (value: string) => {
-    const end = today;
-    let start = new Date(today);
-
-    switch (value) {
-      case "1day":
-        start.setDate(end.getDate() - 1);
-        break;
-      case "1week":
-        start.setDate(end.getDate() - 7);
-        break;
-      case "1month":
-        start.setMonth(end.getMonth() - 1);
-        break;
-      case "1year":
-        start.setFullYear(end.getFullYear() - 1);
-        break;
-      case "allTime":
-        start = new Date(0);
-        break;
-      default:
-        break;
-    }
-
-    setDateRange({ start, end });
     setSelectedDateRange(value);
+    if (value === "custom") {
+      setIsCalendarOpen(false);
+    } else {
+      setIsCalendarOpen(false);
+    const end = new Date();
+    let start = new Date();
+
+      switch (value) {
+        case "1day":
+          start.setDate(end.getDate() - 1);
+          break;
+        case "1week":
+          start.setDate(end.getDate() - 7);
+          break;
+        case "1month":
+          start.setMonth(end.getMonth() - 1);
+          break;
+        case "1year":
+          start.setFullYear(end.getFullYear() - 1);
+          break;
+        case "allTime":
+          start = new Date(0);
+          break;
+      }
+
+      setDateRange({ start, end });
+      setCustomDateRange(undefined);
+    }
   };
 
   const handleBranchChange = (value: string) => {
     setSelectedBranch(value);
   };
 
-  const formatDate = (date: Date) => {
-    return date
-      .toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-      .replace(",", "");
-  };
+ const handleCustomDateSelect = (range: DateRange | undefined) => {
+   if (range?.from) {
+     const start = range.from;
+     const end = range.to || range.from;
+     setDateRange({ start, end });
+     setCustomDateRange(range);
+   }
+ };
 
   const getDateRangeDisplay = () => {
-    if (selectedDateRange === "allTime") {
-      return ` ${formatDate(today)}`;
+    if (selectedDateRange === "custom" && customDateRange?.from) {
+      const start = format(customDateRange.from, "PPP");
+      const end = customDateRange.to
+        ? format(customDateRange.to, "PPP")
+        : start;
+      return `${start} - ${end}`;
+    } else if (
+      selectedDateRange === "allTime" ||
+      (selectedDateRange === "custom" && !customDateRange?.from)
+    ) {
+      return format(new Date(), "PPP");
     } else {
-      return `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`;
+      return `${format(dateRange.start, "PPP")} - ${format(
+        dateRange.end,
+        "PPP"
+      )}`;
     }
   };
 
@@ -161,10 +186,48 @@ const Dashboard = () => {
               <SelectItem value="1month">1 Month</SelectItem>
               <SelectItem value="1year">1 Year</SelectItem>
               <SelectItem value="allTime">All Time</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
             </SelectContent>
           </Select>
+          {selectedDateRange === "custom" && (
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={`w-[280px] justify-start text-left font-normal ${
+                    !customDateRange && "text-muted-foreground"
+                  }`}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {customDateRange?.from ? (
+                    customDateRange.to ? (
+                      <>
+                        {format(customDateRange.from, "LLL dd, y")} -{" "}
+                        {format(customDateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(customDateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={customDateRange?.from}
+                  selected={customDateRange}
+                  onSelect={handleCustomDateSelect}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -180,7 +243,6 @@ const Dashboard = () => {
             )}
             {!isLoading && getGrowthDisplay(growthPercentage, "revenue")}
           </CardContent>
-          
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -215,6 +277,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
       <Select onValueChange={handleBranchChange} value={selectedBranch}>
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Select branch" />
@@ -225,6 +288,7 @@ const Dashboard = () => {
           <SelectItem value="Dagapur">Dagapur</SelectItem>
         </SelectContent>
       </Select>
+
       <Tabs defaultValue="insights" className="w-full">
         <TabsList>
           <TabsTrigger value="insights">Insights</TabsTrigger>
