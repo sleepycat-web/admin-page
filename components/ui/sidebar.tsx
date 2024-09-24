@@ -127,7 +127,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen">
       {/* Horizontal sidebar for mobile */}
       <div
         ref={sidebarRef}
@@ -171,10 +171,10 @@ const Sidebar = () => {
       </div>
 
       {/* Vertical sidebar for desktop */}
-      <div className="hidden md:flex md:h-screen">
-        <div className="w-52 bg-neutral-900 p-4">
+      <div className="hidden md:flex flex-grow">
+        <div className="w-52 bg-neutral-900 p-4 flex flex-col">
           <h1 className="text-xl font-semibold text-white mb-4">Dashboard</h1>
-          <nav className="space-y-2">
+          <nav className="space-y-2 flex-grow">
             {navItems.map((item) => (
               <NavButton
                 key={item.component}

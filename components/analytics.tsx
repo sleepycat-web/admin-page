@@ -22,8 +22,8 @@ import { Loader2 } from "lucide-react";
 import { DateRange } from "react-day-picker";
 
 // These would be separate components in real implementation
-const ExpensesComponent = () => <div>Expenses Component</div>;
-const OrdersComponent = () => <div>Orders Component</div>;
+const ExpensesComponent = () => <div></div>;
+const OrdersComponent = () => <div></div>;
 
 const Dashboard = () => {
   const today = new Date();
@@ -133,25 +133,25 @@ const Dashboard = () => {
    }
  };
 
-  const getDateRangeDisplay = () => {
-    if (selectedDateRange === "custom" && customDateRange?.from) {
-      const start = format(customDateRange.from, "PPP");
-      const end = customDateRange.to
-        ? format(customDateRange.to, "PPP")
-        : start;
-      return `${start} - ${end}`;
-    } else if (
-      selectedDateRange === "allTime" ||
-      (selectedDateRange === "custom" && !customDateRange?.from)
-    ) {
-      return format(new Date(), "PPP");
-    } else {
-      return `${format(dateRange.start, "PPP")} - ${format(
-        dateRange.end,
-        "PPP"
-      )}`;
-    }
-  };
+   const getDateRangeDisplay = () => {
+     if (selectedDateRange === "custom" && customDateRange?.from) {
+       const start = format(customDateRange.from, "MMMM d yyyy");
+       const end = customDateRange.to
+         ? format(customDateRange.to, "MMMM d yyyy")
+         : start;
+       return `${start} - ${end}`;
+     } else if (
+       selectedDateRange === "allTime" ||
+       (selectedDateRange === "custom" && !customDateRange?.from)
+     ) {
+       return format(new Date(), "MMMM d yyyy");
+     } else {
+       return `${format(dateRange.start, "MMMM d yyyy")} - ${format(
+         dateRange.end,
+         "MMMM d yyyy"
+       )}`;
+     }
+   };
 
   const getGrowthDisplay = (value: number | null, label: string) => {
     if (value === null) {
@@ -167,17 +167,17 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex justify-between items-center">
+ <div className="p-4 space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
         <h1 className="text-3xl font-bold">Dashboard</h1>
 
-        <div className="flex items-center space-x-2">
-          <span>{getDateRangeDisplay()}</span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+          <span className="text-sm">{getDateRangeDisplay()}</span>
           <Select
             onValueChange={handleDateRangeChange}
             value={selectedDateRange}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Select date range" />
             </SelectTrigger>
             <SelectContent>
@@ -194,7 +194,7 @@ const Dashboard = () => {
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={`w-[280px] justify-start text-left font-normal ${
+                  className={`w-full sm:w-[280px] justify-start text-left font-normal ${
                     !customDateRange && "text-muted-foreground"
                   }`}
                 >
@@ -227,6 +227,7 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -292,8 +293,8 @@ const Dashboard = () => {
       <Tabs defaultValue="insights" className="w-full">
         <TabsList>
           <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="expenses">Tab 2</TabsTrigger>
+          <TabsTrigger value="orders">Tab 3</TabsTrigger>
         </TabsList>
         <TabsContent value="insights">
           <InsightsComponent
