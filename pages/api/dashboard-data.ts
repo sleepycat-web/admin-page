@@ -137,7 +137,7 @@ async function calculateRevenueOrdersAndExpenses(
       .find(expenseQuery)
       .toArray();
 
-    orders.forEach((order: any) => {
+    orders.forEach((order) => {
       const date = new Date(order.createdAt).toLocaleDateString("en-US", {
         timeZone: "Asia/Kolkata",
       });
@@ -158,7 +158,7 @@ async function calculateRevenueOrdersAndExpenses(
       totalOrders += 1;
     });
 
-    expenses.forEach((expense: any) => {
+    expenses.forEach((expense) => {
       const date = new Date(expense.createdAt).toLocaleDateString("en-US", {
         timeZone: "Asia/Kolkata",
       });

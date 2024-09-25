@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   LineChart,
@@ -41,13 +41,8 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
   selectedBranch,
 }) => {
   const [salesData, setSalesData] = useState<AggregatedSalesDataPoint[]>([]);
-  const [totalOrders, setTotalOrders] = useState<number>(0);
 
-  useEffect(() => {
-    fetchInsightsData();
-  }, [dateRange, selectedBranch]);
-
-  const fetchInsightsData = async () => {
+  const fetchInsightsData = useCallback(async () => {
     try {
       const response = await fetch("/api/dashboard-data", {
         method: "POST",
@@ -65,11 +60,14 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
       // Aggregate data across branches
       const aggregatedData = aggregateSalesData(data.salesData);
       setSalesData(aggregatedData);
-      setTotalOrders(data.totalOrders);
     } catch (error) {
       console.error("Error fetching insights data:", error);
     }
-  };
+  }, [dateRange, selectedBranch]);
+
+  useEffect(() => {
+    fetchInsightsData();
+  }, [fetchInsightsData]);
 
   const aggregateSalesData = (
     data: SalesDataPoint[]
@@ -101,47 +99,45 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
   };
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Sales, Orders, and Expenses Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={salesData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tickFormatter={formatDate} />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
-              <Tooltip />
-              <Legend />
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="revenue"
-                stroke="#8884d8"
-                activeDot={{ r: 8 }}
-                name="Revenue"
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="orders"
-                stroke="#82ca9d"
-                name="Orders"
-              />
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="expenses"
-                stroke="#6A8FBF"
-                name="Expenses"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    </>
+    <Card>
+      <CardHeader>
+        <CardTitle>Sales, Orders, and Expenses Overview</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={salesData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" tickFormatter={formatDate} />
+            <YAxis yAxisId="left" />
+            <YAxis yAxisId="right" orientation="right" />
+            <Tooltip />
+            <Legend />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="revenue"
+              stroke="#8884d8"
+              activeDot={{ r: 8 }}
+              name="Revenue"
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="orders"
+              stroke="#82ca9d"
+              name="Orders"
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="expenses"
+              stroke="#6A8FBF"
+              name="Expenses"
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
   );
 };
 
