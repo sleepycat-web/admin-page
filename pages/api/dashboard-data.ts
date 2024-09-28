@@ -101,12 +101,13 @@ async function calculateRevenueOrdersAndExpenses(
   let totalOrders = 0;
   const salesDataMap: { [key: string]: SalesDataPoint } = {};
 
-  const startDateTime = new Date(
-    new Date(startDate).toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-  );
-  const endDateTime = new Date(
-    new Date(endDate).toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-  );
+  const startDateTime = new Date(startDate);
+  const endDateTime = new Date(endDate);
+
+  // Adjust end time to 23:59:59.999 if start and end are on the same day
+  if (startDateTime.toDateString() === endDateTime.toDateString()) {
+    endDateTime.setHours(23, 59, 59, 999);
+  }
 
   const orderQuery = {
     createdAt: { $gte: startDateTime, $lte: endDateTime },
