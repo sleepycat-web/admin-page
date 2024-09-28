@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { connectToDatabase } from "../../lib/mongodb";
-import { Collection, Document } from "mongodb";
+import { startOfDay, endOfDay, parseISO, addHours, addMinutes } from "date-fns";
 
 interface Expense {
   _id: string;
@@ -16,30 +16,33 @@ export default async function handler(
 ) {
   if (req.method === "POST") {
     try {
- const { branch, startDate, endDate, category } = req.body;
- const { db } = await connectToDatabase();
+      const { branch, startDate, endDate, category } = req.body;
+      const { db } = await connectToDatabase();
 
- let pipeline: Document[] = [];
+      // Parse dates from ISO string
+      const startDateTime = startOfDay(parseISO(startDate));
+      const endDateTime = endOfDay(parseISO(endDate));
 
- // Adjust the dates to IST (+5:30 hours)
- const adjustDate = (date: string) => {
-   const d = new Date(date);
-   return new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
- };
+      // Add 5 hours and 30 minutes to startDateTime and endDateTime
+      const adjustedStartDateTime = addMinutes(addHours(startDateTime, 5), 30);
+      const adjustedEndDateTime = addMinutes(addHours(endDateTime, 5), 30);
 
- const dateFilter = {
-   createdAt: {
-     $gte: adjustDate(startDate),
-     $lte: adjustDate(endDate),
-   },
- };
+      const dateFilter = {
+        createdAt: {
+          $gte: adjustedStartDateTime,
+          $lte: adjustedEndDateTime,
+        },
+      };
 
-      let categoryFilter: Document = {};
+      let categoryFilter = {};
+
       if (category && category !== "General") {
         if (category === "Online Payments") {
           categoryFilter = { category: "UPI Payment" };
         } else if (category === "Cash Payments") {
           categoryFilter = { category: "Extra Cash Payment" };
+        } else {
+          categoryFilter = { category: category };
         }
       } else {
         categoryFilter = {
@@ -49,48 +52,42 @@ export default async function handler(
         };
       }
 
+      let expenses: Expense[] = [];
+      let total = 0;
+
       if (branch === "all") {
-        const sevokeExpenses = await db
-          .collection<Expense>("ExpenseSevoke")
-          .aggregate([
-            { $match: { ...dateFilter, ...categoryFilter } },
-            { $addFields: { branch: "Sevoke" } },
-          ])
-          .toArray();
-
-        const dagapurExpenses = await db
-          .collection<Expense>("ExpenseDagapur")
-          .aggregate([
-            { $match: { ...dateFilter, ...categoryFilter } },
-            { $addFields: { branch: "Dagapur" } },
-          ])
-          .toArray();
-
-        const expenses = [...sevokeExpenses, ...dagapurExpenses];
-        const total = expenses.reduce(
-          (acc, expense) => acc + expense.amount,
-          0
-        );
-
-        res.status(200).json({ expenses, total });
+        const branches = ["Sevoke", "Dagapur"];
+        for (const branchName of branches) {
+          const collection = db.collection<Expense>(`Expense${branchName}`);
+          const branchExpenses = await collection
+            .aggregate<Expense>([
+              { $match: { ...dateFilter, ...categoryFilter } },
+              { $addFields: { branch: branchName } },
+            ])
+            .toArray();
+          expenses.push(...branchExpenses);
+        }
       } else {
         const collection = db.collection<Expense>(`Expense${branch}`);
-        pipeline = [
-          { $match: { ...dateFilter, ...categoryFilter } },
-          { $addFields: { branch: branch } },
-        ];
-
-        const expenses = await collection
-          .aggregate<Expense>(pipeline)
+        expenses = await collection
+          .aggregate<Expense>([
+            { $match: { ...dateFilter, ...categoryFilter } },
+            { $addFields: { branch: branch } },
+          ])
           .toArray();
-        const total = expenses.reduce(
-          (acc, expense) => acc + expense.amount,
-          0
-        );
-
-        res.status(200).json({ expenses, total });
       }
+
+      total = expenses.reduce((acc, expense) => acc + expense.amount, 0);
+
+      console.log(
+        `Date range: ${adjustedStartDateTime} to ${adjustedEndDateTime}`
+      );
+      console.log(`Number of expenses found: ${expenses.length}`);
+      console.log(`Total amount: ${total}`);
+
+      res.status(200).json({ expenses, total });
     } catch (error) {
+      console.error("Error fetching expenses:", error);
       res.status(500).json({ error: "Unable to fetch expenses" });
     }
   } else {

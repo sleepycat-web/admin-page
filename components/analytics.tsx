@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 import InsightsComponent from "./insights";
 import { Loader2 } from "lucide-react";
 import { DateRange } from "react-day-picker";
@@ -50,42 +50,52 @@ const Dashboard = () => {
     fetchData();
   }, [dateRange, selectedBranch]);
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const { start, end } = dateRange;
-      const previousStart = new Date(
-        start.getTime() - (end.getTime() - start.getTime())
-      );
+   const fetchData = async () => {
+     setIsLoading(true);
+     try {
+       const { start, end } = dateRange;
+       let previousStart, previousEnd;
 
-      const response = await fetch("/api/dashboard-data", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          startDate: start.toISOString(),
-          endDate: end.toISOString(),
-          branch: selectedBranch,
-          previousStartDate: previousStart.toISOString(),
-          previousEndDate: start.toISOString(),
-        }),
-      });
-      const data = await response.json();
-      setTotalRevenue(data.totalRevenue);
-      setTotalUsers(data.totalUsers);
-      setGrowthPercentage(
-        data.growthPercentage !== undefined ? data.growthPercentage : null
-      );
-      setTotalOrders(data.totalOrders);
-      setOrderGrowthPercentage(data.orderGrowthPercentage);
-      setNewSignups(data.newSignups);
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+       if (start.getTime() === end.getTime()) {
+         // If start and end are the same, set previous period to the day before
+         previousEnd = subDays(start, 1);
+         previousStart = new Date(previousEnd);
+         previousStart.setHours(0, 0, 0, 0);
+       } else {
+         const duration = end.getTime() - start.getTime();
+         previousStart = new Date(start.getTime() - duration);
+         previousEnd = new Date(start);
+       }
+
+       const response = await fetch("/api/dashboard-data", {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+         },
+         body: JSON.stringify({
+           startDate: start.toISOString(),
+           endDate: end.toISOString(),
+           branch: selectedBranch,
+           previousStartDate: previousStart.toISOString(),
+           previousEndDate: previousEnd.toISOString(),
+         }),
+       });
+       const data = await response.json();
+       setTotalRevenue(data.totalRevenue);
+       setTotalUsers(data.totalUsers);
+       setGrowthPercentage(
+         data.growthPercentage !== undefined ? data.growthPercentage : null
+       );
+       setTotalOrders(data.totalOrders);
+       setOrderGrowthPercentage(data.orderGrowthPercentage);
+       setNewSignups(data.newSignups);
+     } catch (error) {
+       console.error("Error fetching dashboard data:", error);
+     } finally {
+       setIsLoading(false);
+     }
+   };
+
 
   const handleDateRangeChange = (value: string) => {
     setSelectedDateRange(value);
@@ -201,11 +211,11 @@ const Dashboard = () => {
                   {customDateRange?.from ? (
                     customDateRange.to ? (
                       <>
-                        {format(customDateRange.from, "LLL dd, y")} -{" "}
-                        {format(customDateRange.to, "LLL dd, y")}
+                        {format(customDateRange.from, "LLL dd y")} -{" "}
+                        {format(customDateRange.to, "LLL dd y")}
                       </>
                     ) : (
-                      format(customDateRange.from, "LLL dd, y")
+                      format(customDateRange.from, "LLL dd y")
                     )
                   ) : (
                     <span>Pick a date range</span>
