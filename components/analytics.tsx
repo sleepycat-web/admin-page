@@ -307,10 +307,10 @@ const Dashboard = () => {
           />
         </TabsContent>
         <TabsContent value="orders">
-          <OrdersComponent
+          {/* <OrdersComponent
             dateRange={dateRange}
             selectedBranch={selectedBranch}
-          />
+          /> */}
         </TabsContent>
       </Tabs>
     </div>
