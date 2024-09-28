@@ -38,7 +38,10 @@ export default async function handler(
 
       if (category && category !== "General") {
         if (category === "Online Payments") {
-          categoryFilter = { category: "UPI Payment" };
+          // Include both "UPI Payment" and "Extra UPI Payment"
+          categoryFilter = {
+            category: { $in: ["UPI Payment", "Extra UPI Payment"] },
+          };
         } else if (category === "Cash Payments") {
           categoryFilter = { category: "Extra Cash Payment" };
         } else {

@@ -104,6 +104,10 @@ async function calculateRevenueOrdersAndExpenses(
   const startDateTime = new Date(startDate);
   const endDateTime = new Date(endDate);
 
+  // Add 330 minutes (5 hours and 30 minutes)
+  startDateTime.setMinutes(startDateTime.getMinutes() + 330);
+  endDateTime.setMinutes(endDateTime.getMinutes() + 330);
+
   // Adjust end time to 23:59:59.999 if start and end are on the same day
   if (startDateTime.toDateString() === endDateTime.toDateString()) {
     endDateTime.setHours(23, 59, 59, 999);
@@ -115,9 +119,12 @@ async function calculateRevenueOrdersAndExpenses(
     order: "dispatched",
   };
 
+  // Exclude specific categories from expenses
   const expenseQuery = {
     createdAt: { $gte: startDateTime, $lte: endDateTime },
-    category: { $ne: "UPI payment" },
+    category: {
+      $nin: ["UPI payment", "extra cash payments", "extra UPI payment"],
+    },
   };
 
   const branches = branch === "all" ? ["Sevoke", "Dagapur"] : [branch];
@@ -138,6 +145,7 @@ async function calculateRevenueOrdersAndExpenses(
       .find(expenseQuery)
       .toArray();
 
+    // Calculate total revenue and orders
     orders.forEach((order) => {
       const date = new Date(order.createdAt).toLocaleDateString("en-US", {
         timeZone: "Asia/Kolkata",
@@ -153,12 +161,14 @@ async function calculateRevenueOrdersAndExpenses(
         };
       }
 
+      // Include extra cash payments and extra UPI payments
       salesDataMap[date].revenue += order.total;
       salesDataMap[date].orders += 1;
       totalRevenue += order.total;
       totalOrders += 1;
     });
 
+    // Calculate expenses
     expenses.forEach((expense) => {
       const date = new Date(expense.createdAt).toLocaleDateString("en-US", {
         timeZone: "Asia/Kolkata",
@@ -175,6 +185,36 @@ async function calculateRevenueOrdersAndExpenses(
       }
 
       salesDataMap[date].expenses += expense.amount;
+    });
+
+    // Include extra cash payments and extra UPI payments in revenue
+    const extraPaymentsQuery = {
+      createdAt: { $gte: startDateTime, $lte: endDateTime },
+      category: { $in: ["extra cash payments", "extra UPI payment"] },
+    };
+
+    const extraPayments = await db
+      .collection(orderCollectionName)
+      .find(extraPaymentsQuery)
+      .toArray();
+
+    extraPayments.forEach((payment) => {
+      const date = new Date(payment.createdAt).toLocaleDateString("en-US", {
+        timeZone: "Asia/Kolkata",
+      });
+
+      if (!salesDataMap[date]) {
+        salesDataMap[date] = {
+          date,
+          revenue: 0,
+          orders: 0,
+          expenses: 0,
+          branch: branchName,
+        };
+      }
+
+      salesDataMap[date].revenue += payment.total; // Assuming `payment.total` holds the revenue from the extra payments
+      totalRevenue += payment.total; // Add to total revenue
     });
   }
 
