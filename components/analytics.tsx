@@ -21,7 +21,7 @@ import InsightsComponent from "./insights";
 import { Loader2 } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import ExpensesComponent from "./expenses";
-import OrdersComponent from "./orders";
+// import OrdersComponent from "./orders";
 // These would be separate components in real implementation
  
 const Dashboard = () => {
