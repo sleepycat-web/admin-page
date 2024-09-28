@@ -20,11 +20,10 @@ import { format } from "date-fns";
 import InsightsComponent from "./insights";
 import { Loader2 } from "lucide-react";
 import { DateRange } from "react-day-picker";
-
+import ExpensesComponent from "./expenses";
+import OrdersComponent from "./orders";
 // These would be separate components in real implementation
-const ExpensesComponent = () => <div></div>;
-const OrdersComponent = () => <div></div>;
-
+ 
 const Dashboard = () => {
   const today = new Date();
   const [dateRange, setDateRange] = useState({
@@ -167,7 +166,7 @@ const Dashboard = () => {
   };
 
   return (
- <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
         <h1 className="text-3xl font-bold">Dashboard</h1>
 
@@ -227,7 +226,6 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -293,7 +291,7 @@ const Dashboard = () => {
       <Tabs defaultValue="insights" className="w-full">
         <TabsList>
           <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="expenses">Tab 2</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="orders">Tab 3</TabsTrigger>
         </TabsList>
         <TabsContent value="insights">
@@ -303,10 +301,16 @@ const Dashboard = () => {
           />
         </TabsContent>
         <TabsContent value="expenses">
-          <ExpensesComponent />
+          <ExpensesComponent
+            dateRange={dateRange}
+            selectedBranch={selectedBranch}
+          />
         </TabsContent>
         <TabsContent value="orders">
-          <OrdersComponent />
+          <OrdersComponent
+            dateRange={dateRange}
+            selectedBranch={selectedBranch}
+          />
         </TabsContent>
       </Tabs>
     </div>
