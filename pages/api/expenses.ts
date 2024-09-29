@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { connectToDatabase } from "../../lib/mongodb";
-import { startOfDay, endOfDay, parseISO, addHours, addMinutes } from "date-fns";
+import { startOfDay, endOfDay, parseISO, } from "date-fns";
 
 interface Expense {
   _id: string;
@@ -33,7 +33,7 @@ export default async function handler(
       //     $lte: adjustedEndDateTime,
       //   },
       // };
-      
+
       // Don't add hours/minutes here
       const startDateTime = startOfDay(parseISO(startDate));
       const endDateTime = endOfDay(parseISO(endDate));
