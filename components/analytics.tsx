@@ -21,7 +21,7 @@ import InsightsComponent from "./insights";
 import { Loader2 } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import ExpensesComponent from "./expenses";
-// import OrdersComponent from "./orders";
+import OrdersComponent from "./orders";
 // These would be separate components in real implementation
 
 const Dashboard = () => {
@@ -301,7 +301,7 @@ const Dashboard = () => {
         <TabsList>
           <TabsTrigger value="insights">Insights</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="orders">Tab 3</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
         </TabsList>
         <TabsContent value="insights">
           <InsightsComponent
@@ -316,10 +316,10 @@ const Dashboard = () => {
           />
         </TabsContent>
         <TabsContent value="orders">
-          {/* <OrdersComponent
+          <OrdersComponent
             dateRange={dateRange}
             selectedBranch={selectedBranch}
-          /> */}
+          />
         </TabsContent>
       </Tabs>
     </div>
