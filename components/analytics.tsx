@@ -132,7 +132,14 @@ const Dashboard = () => {
     setSelectedBranch(value);
   };
 
-  
+  const handleCustomDateSelect = (range: DateRange | undefined) => {
+    if (range?.from) {
+      const start = range.from;
+      const end = range.to || range.from;
+      setDateRange({ start, end });
+      setCustomDateRange(range);
+    }
+  };
 
   const getDateRangeDisplay = () => {
     if (selectedDateRange === "custom" && customDateRange?.from) {
