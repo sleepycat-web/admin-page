@@ -15,7 +15,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
+
+import { CalendarIcon, X } from "lucide-react";
 import { format, subDays } from "date-fns";
 import InsightsComponent from "./insights";
 import { Loader2 } from "lucide-react";
@@ -45,7 +46,7 @@ const Dashboard = () => {
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(
     undefined
   );
-
+   
   useEffect(() => {
     fetchData();
   }, [dateRange, selectedBranch]);
@@ -95,6 +96,9 @@ const Dashboard = () => {
       setIsLoading(false);
     }
   };
+const handleDateReset = () => {
+  setCustomDateRange(undefined);
+};
 
   const handleDateRangeChange = (value: string) => {
     setSelectedDateRange(value);
@@ -132,14 +136,30 @@ const Dashboard = () => {
     setSelectedBranch(value);
   };
 
-  const handleCustomDateSelect = (range: DateRange | undefined) => {
-    if (range?.from) {
-      const start = range.from;
-      const end = range.to || range.from;
-      setDateRange({ start, end });
-      setCustomDateRange(range);
+const handleCustomDateSelect = (range: DateRange | undefined) => {
+  if (range?.from) {
+    let start = range.from;
+    let end = range.to || range.from;
+
+    // Ensure start is always before or equal to end
+    if (end < start) {
+      [start, end] = [end, start];
     }
-  };
+
+    setDateRange({ start, end });
+    setCustomDateRange({ from: start, to: end });
+    setSelectedDateRange("custom");
+  }
+};
+
+const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
+  if (modifiers.double) {
+    const newRange = { from: day, to: day };
+    handleCustomDateSelect(newRange);
+    setIsCalendarOpen(false);
+  }
+};
+
 
   const getDateRangeDisplay = () => {
     if (selectedDateRange === "custom" && customDateRange?.from) {
@@ -202,20 +222,27 @@ const Dashboard = () => {
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={`w-full sm:w-[280px] justify-start text-left font-normal ${
-                    !customDateRange && "text-muted-foreground"
-                  }`}
+                  className="w-full sm:w-[280px] justify-start text-left font-normal relative"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {customDateRange?.from ? (
-                    customDateRange.to ? (
-                      <>
-                        {format(customDateRange.from, "LLL dd y")} -{" "}
-                        {format(customDateRange.to, "LLL dd y")}
-                      </>
-                    ) : (
-                      format(customDateRange.from, "LLL dd y")
-                    )
+                    <>
+                      {format(customDateRange.from, "LLL dd yyyy")} -{" "}
+                      {customDateRange.to
+                        ? format(customDateRange.to, "LLL dd yyyy")
+                        : format(customDateRange.from, "LLL dd yyyy")}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDateReset();
+                        }}
+                        className="h-8 w-8 absolute right-1 top-1/2 transform -translate-y-1/2"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
                   ) : (
                     <span>Pick a date range</span>
                   )}
@@ -229,6 +256,7 @@ const Dashboard = () => {
                   selected={customDateRange}
                   onSelect={handleCustomDateSelect}
                   numberOfMonths={2}
+                  onDayClick={handleDayClick}
                 />
               </PopoverContent>
             </Popover>

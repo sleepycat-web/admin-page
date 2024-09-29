@@ -101,13 +101,12 @@ async function calculateRevenueOrdersAndExpenses(
   let totalOrders = 0;
   const salesDataMap: { [key: string]: SalesDataPoint } = {};
 
-  // Parse dates from ISO string
+  // Convert start and end dates to UTC
   const startDateTime = new Date(startDate);
-  startDateTime.setHours(5, 30, 0, 0); // Set to 5:30 AM
+  startDateTime.setUTCHours(0, 0, 0, 0);
 
   const endDateTime = new Date(endDate);
-  endDateTime.setDate(endDateTime.getDate() + 1); // Add one day
-  endDateTime.setHours(5, 30, 0, 0); // Set to 5:30 AM
+  endDateTime.setUTCHours(23, 59, 59, 999);
 
   const orderQuery = {
     createdAt: { $gte: startDateTime, $lte: endDateTime },
@@ -115,7 +114,6 @@ async function calculateRevenueOrdersAndExpenses(
     order: "dispatched",
   };
 
-  // Exclude specific categories from expenses
   const expenseQuery = {
     createdAt: { $gte: startDateTime, $lte: endDateTime },
     category: {
@@ -141,11 +139,20 @@ async function calculateRevenueOrdersAndExpenses(
       .find(expenseQuery)
       .toArray();
 
-    // Calculate total revenue and orders
-    orders.forEach((order) => {
-      const date = new Date(order.createdAt).toLocaleDateString("en-US", {
+    // Helper function to convert UTC to IST and format date
+    const formatISTDate = (utcDate: Date): string => {
+      const istDate = new Date(utcDate.getTime() + 5.5 * 60 * 60 * 1000); // Add 5 hours 30 minutes
+      return istDate.toLocaleDateString("en-US", {
         timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
       });
+    };
+
+    // Process orders
+    orders.forEach((order) => {
+      const date = formatISTDate(new Date(order.createdAt));
 
       if (!salesDataMap[date]) {
         salesDataMap[date] = {
@@ -157,18 +164,15 @@ async function calculateRevenueOrdersAndExpenses(
         };
       }
 
-      // Include extra cash payments and extra UPI payments
       salesDataMap[date].revenue += order.total;
       salesDataMap[date].orders += 1;
       totalRevenue += order.total;
       totalOrders += 1;
     });
 
-    // Calculate expenses
+    // Process expenses
     expenses.forEach((expense) => {
-      const date = new Date(expense.createdAt).toLocaleDateString("en-US", {
-        timeZone: "Asia/Kolkata",
-      });
+      const date = formatISTDate(new Date(expense.createdAt));
 
       if (!salesDataMap[date]) {
         salesDataMap[date] = {
@@ -183,9 +187,9 @@ async function calculateRevenueOrdersAndExpenses(
       salesDataMap[date].expenses += expense.amount;
     });
 
-    // Include extra cash payments and extra UPI payments in revenue
+    // Process extra payments
     const extraPaymentsQuery = {
-      createdAt: { $gte: startDateTime, $lt: endDateTime },
+      createdAt: { $gte: startDateTime, $lte: endDateTime },
       category: { $in: ["Extra Cash Payment", "Extra UPI Payment"] },
     };
 
@@ -195,9 +199,7 @@ async function calculateRevenueOrdersAndExpenses(
       .toArray();
 
     extraPayments.forEach((payment) => {
-      const date = new Date(payment.createdAt).toLocaleDateString("en-US", {
-        timeZone: "Asia/Kolkata",
-      });
+      const date = formatISTDate(new Date(payment.createdAt));
 
       if (!salesDataMap[date]) {
         salesDataMap[date] = {
@@ -209,8 +211,8 @@ async function calculateRevenueOrdersAndExpenses(
         };
       }
 
-      salesDataMap[date].revenue += payment.total; // Assuming `payment.total` holds the revenue from the extra payments
-      totalRevenue += payment.total; // Add to total revenue
+      salesDataMap[date].revenue += payment.total;
+      totalRevenue += payment.total;
     });
   }
 
