@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { connectToDatabase } from "../../lib/mongodb";
-import { startOfDay, endOfDay, parseISO, } from "date-fns";
+import { startOfDay, endOfDay, parseISO, addHours, addMinutes } from "date-fns";
 
 interface Expense {
   _id: string;
@@ -20,29 +20,17 @@ export default async function handler(
       const { db } = await connectToDatabase();
 
       // Parse dates from ISO string
-      // const startDateTime = startOfDay(parseISO(startDate));
-      // const endDateTime = endOfDay(parseISO(endDate));
-
-      // // Add 5 hours and 30 minutes to startDateTime and endDateTime
-      // const adjustedStartDateTime = addMinutes(addHours(startDateTime, 5), 30);
-      // const adjustedEndDateTime = addMinutes(addHours(endDateTime, 5), 30);
-
-      // const dateFilter = {
-      //   createdAt: {
-      //     $gte: adjustedStartDateTime,
-      //     $lte: adjustedEndDateTime,
-      //   },
-      // };
-
-      // Don't add hours/minutes here
       const startDateTime = startOfDay(parseISO(startDate));
       const endDateTime = endOfDay(parseISO(endDate));
 
-      // No need for time addition here
+      // Add 5 hours and 30 minutes to startDateTime and endDateTime
+      const adjustedStartDateTime = addMinutes(addHours(startDateTime, 5), 30);
+      const adjustedEndDateTime = addMinutes(addHours(endDateTime, 5), 30);
+
       const dateFilter = {
         createdAt: {
-          $gte: startDateTime,
-          $lte: endDateTime,
+          $gte: adjustedStartDateTime,
+          $lte: adjustedEndDateTime,
         },
       };
 
@@ -94,6 +82,7 @@ export default async function handler(
 
       total = expenses.reduce((acc, expense) => acc + expense.amount, 0);
 
+    
       res.status(200).json({ expenses, total });
     } catch (error) {
       console.error("Error fetching expenses:", error);

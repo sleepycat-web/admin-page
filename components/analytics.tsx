@@ -96,51 +96,37 @@ const Dashboard = () => {
     }
   };
 
-const handleDateRangeChange = (value: string) => {
-  setSelectedDateRange(value);
-  setIsCalendarOpen(false); // Close calendar regardless of selection
-  const end = new Date();
-  let start = new Date();
+  const handleDateRangeChange = (value: string) => {
+    setSelectedDateRange(value);
+    if (value === "custom") {
+      setIsCalendarOpen(false);
+    } else {
+      setIsCalendarOpen(false);
+      const end = new Date();
+      let start = new Date();
 
-  switch (value) {
-    case "1day":
-      start = end; // Set start and end to the same date
-      break;
-    case "1week":
-      start.setDate(end.getDate() - 7);
-      break;
-    case "1month":
-      start.setMonth(end.getMonth() - 1);
-      break;
-    case "1year":
-      start.setFullYear(end.getFullYear() - 1);
-      break;
-    case "allTime":
-      start = new Date(0);
-      break;
-    case "custom":
-      setIsCalendarOpen(false); // Open calendar for custom date selection
-      break;
-    default:
-      break;
-  }
+      switch (value) {
+        case "1day":
+          start.setDate(end.getDate() - 1);
+          break;
+        case "1week":
+          start.setDate(end.getDate() - 7);
+          break;
+        case "1month":
+          start.setMonth(end.getMonth() - 1);
+          break;
+        case "1year":
+          start.setFullYear(end.getFullYear() - 1);
+          break;
+        case "allTime":
+          start = new Date(0);
+          break;
+      }
 
-  if (value !== "custom") {
-    setDateRange({ start, end });
-    setCustomDateRange(undefined);
-  }
-};
-
-const handleCustomDateSelect = (range: DateRange | undefined) => {
-  if (range?.from) {
-    const start = range.from;
-    const end = range.to || range.from; // Set end date to be the same if not provided
-    setDateRange({ start, end });
-    setCustomDateRange(range);
-  }
-};
-
-
+      setDateRange({ start, end });
+      setCustomDateRange(undefined);
+    }
+  };
 
   const handleBranchChange = (value: string) => {
     setSelectedBranch(value);
