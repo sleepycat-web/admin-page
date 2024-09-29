@@ -123,7 +123,7 @@ async function calculateRevenueOrdersAndExpenses(
   const expenseQuery = {
     createdAt: { $gte: startDateTime, $lte: endDateTime },
     category: {
-      $nin: ["UPI payment", "extra cash payments", "extra UPI payment"],
+      $nin: ["UPI Payment", "Extra Cash Payment", "Extra UPI Payment"],
     },
   };
 
@@ -189,8 +189,8 @@ async function calculateRevenueOrdersAndExpenses(
 
     // Include extra cash payments and extra UPI payments in revenue
     const extraPaymentsQuery = {
-      createdAt: { $gte: startDateTime, $lte: endDateTime },
-      category: { $in: ["extra cash payments", "extra UPI payment"] },
+      createdAt: { $gte: startDateTime, $lt: endDateTime },
+      category: { $in: ["Extra Cash Payment", "Extra UPI Payment"] },
     };
 
     const extraPayments = await db

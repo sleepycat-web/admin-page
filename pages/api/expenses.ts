@@ -82,12 +82,7 @@ export default async function handler(
 
       total = expenses.reduce((acc, expense) => acc + expense.amount, 0);
 
-      console.log(
-        `Date range: ${adjustedStartDateTime} to ${adjustedEndDateTime}`
-      );
-      console.log(`Number of expenses found: ${expenses.length}`);
-      console.log(`Total amount: ${total}`);
-
+    
       res.status(200).json({ expenses, total });
     } catch (error) {
       console.error("Error fetching expenses:", error);

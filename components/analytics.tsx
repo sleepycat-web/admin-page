@@ -23,7 +23,7 @@ import { DateRange } from "react-day-picker";
 import ExpensesComponent from "./expenses";
 // import OrdersComponent from "./orders";
 // These would be separate components in real implementation
- 
+
 const Dashboard = () => {
   const today = new Date();
   const [dateRange, setDateRange] = useState({
@@ -50,52 +50,51 @@ const Dashboard = () => {
     fetchData();
   }, [dateRange, selectedBranch]);
 
-   const fetchData = async () => {
-     setIsLoading(true);
-     try {
-       const { start, end } = dateRange;
-       let previousStart, previousEnd;
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const { start, end } = dateRange;
+      let previousStart, previousEnd;
 
-       if (start.getTime() === end.getTime()) {
-         // If start and end are the same, set previous period to the day before
-         previousEnd = subDays(start, 1);
-         previousStart = new Date(previousEnd);
-         previousStart.setHours(0, 0, 0, 0);
-       } else {
-         const duration = end.getTime() - start.getTime();
-         previousStart = new Date(start.getTime() - duration);
-         previousEnd = new Date(start);
-       }
+      if (start.getTime() === end.getTime()) {
+        // If start and end are the same, set previous period to the day before
+        previousEnd = subDays(start, 1);
+        previousStart = new Date(previousEnd);
+        previousStart.setHours(0, 0, 0, 0);
+      } else {
+        const duration = end.getTime() - start.getTime();
+        previousStart = new Date(start.getTime() - duration);
+        previousEnd = new Date(start);
+      }
 
-       const response = await fetch("/api/dashboard-data", {
-         method: "POST",
-         headers: {
-           "Content-Type": "application/json",
-         },
-         body: JSON.stringify({
-           startDate: start.toISOString(),
-           endDate: end.toISOString(),
-           branch: selectedBranch,
-           previousStartDate: previousStart.toISOString(),
-           previousEndDate: previousEnd.toISOString(),
-         }),
-       });
-       const data = await response.json();
-       setTotalRevenue(data.totalRevenue);
-       setTotalUsers(data.totalUsers);
-       setGrowthPercentage(
-         data.growthPercentage !== undefined ? data.growthPercentage : null
-       );
-       setTotalOrders(data.totalOrders);
-       setOrderGrowthPercentage(data.orderGrowthPercentage);
-       setNewSignups(data.newSignups);
-     } catch (error) {
-       console.error("Error fetching dashboard data:", error);
-     } finally {
-       setIsLoading(false);
-     }
-   };
-
+      const response = await fetch("/api/dashboard-data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+          branch: selectedBranch,
+          previousStartDate: previousStart.toISOString(),
+          previousEndDate: previousEnd.toISOString(),
+        }),
+      });
+      const data = await response.json();
+      setTotalRevenue(data.totalRevenue);
+      setTotalUsers(data.totalUsers);
+      setGrowthPercentage(
+        data.growthPercentage !== undefined ? data.growthPercentage : null
+      );
+      setTotalOrders(data.totalOrders);
+      setOrderGrowthPercentage(data.orderGrowthPercentage);
+      setNewSignups(data.newSignups);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleDateRangeChange = (value: string) => {
     setSelectedDateRange(value);
@@ -103,8 +102,8 @@ const Dashboard = () => {
       setIsCalendarOpen(false);
     } else {
       setIsCalendarOpen(false);
-    const end = new Date();
-    let start = new Date();
+      const end = new Date();
+      let start = new Date();
 
       switch (value) {
         case "1day":
@@ -133,34 +132,34 @@ const Dashboard = () => {
     setSelectedBranch(value);
   };
 
- const handleCustomDateSelect = (range: DateRange | undefined) => {
-   if (range?.from) {
-     const start = range.from;
-     const end = range.to || range.from;
-     setDateRange({ start, end });
-     setCustomDateRange(range);
-   }
- };
+  const handleCustomDateSelect = (range: DateRange | undefined) => {
+    if (range?.from) {
+      const start = range.from;
+      const end = range.to || range.from;
+      setDateRange({ start, end });
+      setCustomDateRange(range);
+    }
+  };
 
-   const getDateRangeDisplay = () => {
-     if (selectedDateRange === "custom" && customDateRange?.from) {
-       const start = format(customDateRange.from, "MMMM d yyyy");
-       const end = customDateRange.to
-         ? format(customDateRange.to, "MMMM d yyyy")
-         : start;
-       return `${start} - ${end}`;
-     } else if (
-       selectedDateRange === "allTime" ||
-       (selectedDateRange === "custom" && !customDateRange?.from)
-     ) {
-       return format(new Date(), "MMMM d yyyy");
-     } else {
-       return `${format(dateRange.start, "MMMM d yyyy")} - ${format(
-         dateRange.end,
-         "MMMM d yyyy"
-       )}`;
-     }
-   };
+  const getDateRangeDisplay = () => {
+    if (selectedDateRange === "custom" && customDateRange?.from) {
+      const start = format(customDateRange.from, "MMMM d yyyy");
+      const end = customDateRange.to
+        ? format(customDateRange.to, "MMMM d yyyy")
+        : start;
+      return `${start} - ${end}`;
+    } else if (
+      selectedDateRange === "allTime" ||
+      (selectedDateRange === "custom" && !customDateRange?.from)
+    ) {
+      return format(new Date(), "MMMM d yyyy");
+    } else {
+      return `${format(dateRange.start, "MMMM d yyyy")} - ${format(
+        dateRange.end,
+        "MMMM d yyyy"
+      )}`;
+    }
+  };
 
   const getGrowthDisplay = (value: number | null, label: string) => {
     if (value === null) {
