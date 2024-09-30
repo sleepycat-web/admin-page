@@ -51,6 +51,15 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
   }>({ key: "createdAt", direction: "desc" }); // Set initial sort config
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [totalOrdersSum, setTotalOrdersSum] = useState(0);
+  
+  const calculateTotalOrdersSum = () => {
+    const sum = filteredOrders.reduce((acc, order) => acc + order.total, 0);
+    setTotalOrdersSum(sum);
+  };
+  useEffect(() => {
+    calculateTotalOrdersSum();
+  }, [filteredOrders]);
 
   useEffect(() => {
     fetchOrders();
@@ -256,6 +265,11 @@ const filterAndSortOrders = () => {
           ))}
         </TableBody>
       </Table>
+      {totalOrdersSum > 0 && (
+        <div className="flex justify-end mt-4 font-semibold text-lg">
+          Total of All Orders: ₹{totalOrdersSum.toFixed(2)}
+        </div>
+      )}
     </div>
   );
 };

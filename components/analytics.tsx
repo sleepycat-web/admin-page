@@ -47,55 +47,8 @@ const Dashboard = () => {
     undefined
   );
    
-  useEffect(() => {
-    fetchData();
-  }, [dateRange, selectedBranch]);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const { start, end } = dateRange;
-      let previousStart, previousEnd;
-
-      if (start.getTime() === end.getTime()) {
-        // If start and end are the same, set previous period to the day before
-        previousEnd = subDays(start, 1);
-        previousStart = new Date(previousEnd);
-        previousStart.setHours(0, 0, 0, 0);
-      } else {
-        const duration = end.getTime() - start.getTime();
-        previousStart = new Date(start.getTime() - duration);
-        previousEnd = new Date(start);
-      }
-
-      const response = await fetch("/api/dashboard-data", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          startDate: start.toISOString(),
-          endDate: end.toISOString(),
-          branch: selectedBranch,
-          previousStartDate: previousStart.toISOString(),
-          previousEndDate: previousEnd.toISOString(),
-        }),
-      });
-      const data = await response.json();
-      setTotalRevenue(data.totalRevenue);
-      setTotalUsers(data.totalUsers);
-      setGrowthPercentage(
-        data.growthPercentage !== undefined ? data.growthPercentage : null
-      );
-      setTotalOrders(data.totalOrders);
-      setOrderGrowthPercentage(data.orderGrowthPercentage);
-      setNewSignups(data.newSignups);
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+ 
+ 
 const handleDateReset = () => {
   setCustomDateRange(undefined);
 };
@@ -264,55 +217,7 @@ const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <div className="text-2xl font-bold">
-                ₹{totalRevenue.toFixed(2)}
-              </div>
-            )}
-            {!isLoading && getGrowthDisplay(growthPercentage, "revenue")}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{totalUsers}</div>
-                <p className="text-xs text-muted-foreground">
-                  {newSignups} new sign-ups in the last time period
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{totalOrders}</div>
-                {getGrowthDisplay(orderGrowthPercentage, "orders")}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+     
 
       <Select onValueChange={handleBranchChange} value={selectedBranch}>
         <SelectTrigger className="w-[180px]">
