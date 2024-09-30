@@ -23,12 +23,16 @@ export default async function handler(
         createdAt: { $gte: startDateTime, $lt: endDateTime },
       };
 
+      // Determine the collection name based on the branch
+      let collectionName = "OrderSevoke";
       if (branch !== "all") {
-        query.selectedLocation = branch;
+        collectionName = `Order${
+          branch.charAt(0).toUpperCase() + branch.slice(1)
+        }`;
       }
 
       const orders = await db
-        .collection("OrderSevoke")
+        .collection(collectionName)
         .aggregate([
           { $match: query },
           {
@@ -36,10 +40,21 @@ export default async function handler(
               _id: 1,
               customerName: 1,
               phoneNumber: 1,
-              total: { $subtract: ["$total", "$tableDeliveryCharge"] }, // Exclude table delivery charge
+              total: {
+                $cond: {
+                  if: {
+                    $and: [
+                      { $isNumber: "$total" },
+                      { $isNumber: "$tableDeliveryCharge" },
+                    ],
+                  },
+                  then: { $subtract: ["$total", "$tableDeliveryCharge"] },
+                  else: "$total",
+                },
+              },
               createdAt: 1,
               status: 1,
-              items: 1, // Include the items array
+              items: 1,
             },
           },
         ])

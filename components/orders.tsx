@@ -25,7 +25,7 @@ interface Order {
   _id: string;
   customerName: string;
   phoneNumber: string;
-  total: number;
+  total: number | null;
   createdAt: string;
   status: string;
   items: OrderItem[];
@@ -53,10 +53,13 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [totalOrdersSum, setTotalOrdersSum] = useState(0);
   
-  const calculateTotalOrdersSum = () => {
-    const sum = filteredOrders.reduce((acc, order) => acc + order.total, 0);
-    setTotalOrdersSum(sum);
-  };
+const calculateTotalOrdersSum = () => {
+  const sum = filteredOrders.reduce(
+    (acc, order) => acc + (order.total || 0),
+    0
+  );
+  setTotalOrdersSum(sum);
+};
   useEffect(() => {
     calculateTotalOrdersSum();
   }, [filteredOrders]);
@@ -90,43 +93,50 @@ useEffect(() => {
     }
   };
 
-const filterAndSortOrders = () => {
-  const filtered = orders.filter(
-    (order) =>
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.phoneNumber.includes(searchTerm)
-  );
+ const filterAndSortOrders = () => {
+   const filtered = orders.filter(
+     (order) =>
+       order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       order.phoneNumber.includes(searchTerm)
+   );
 
-  filtered.sort((a, b) => {
-    if (a[sortConfig.key] < b[sortConfig.key])
-      return sortConfig.direction === "asc" ? -1 : 1;
-    if (a[sortConfig.key] > b[sortConfig.key])
-      return sortConfig.direction === "asc" ? 1 : -1;
-    return 0;
-  });
+   filtered.sort((a, b) => {
+     const aValue = a[sortConfig.key];
+     const bValue = b[sortConfig.key];
 
-  setFilteredOrders(filtered);
-};
+     if (aValue === null || aValue === undefined) return 1;
+     if (bValue === null || bValue === undefined) return -1;
 
-  const sortOrders = (key: keyof Order) => {
-    let direction: "asc" | "desc" = "asc";
-    if (
-      sortConfig &&
-      sortConfig.key === key &&
-      sortConfig.direction === "asc"
-    ) {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
+     if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+     if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+     return 0;
+   });
 
-    setFilteredOrders(
-      [...filteredOrders].sort((a, b) => {
-        if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
-        if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
-        return 0;
-      })
-    );
-  };
+   setFilteredOrders(filtered);
+ };
+
+
+    const sortOrders = (key: keyof Order) => {
+      let direction: "asc" | "desc" = "asc";
+      if (sortConfig.key === key && sortConfig.direction === "asc") {
+        direction = "desc";
+      }
+      setSortConfig({ key, direction });
+
+      setFilteredOrders(
+        [...filteredOrders].sort((a, b) => {
+          const aValue = a[key];
+          const bValue = b[key];
+
+          if (aValue === null || aValue === undefined) return 1;
+          if (bValue === null || bValue === undefined) return -1;
+
+          if (aValue < bValue) return direction === "asc" ? -1 : 1;
+          if (aValue > bValue) return direction === "asc" ? 1 : -1;
+          return 0;
+        })
+      );
+    };
 
   const toggleOrderExpansion = (orderId: string) => {
     setExpandedOrders((prevState) => {
@@ -209,7 +219,10 @@ const filterAndSortOrders = () => {
                 </TableCell>
                 <TableCell>{order.customerName}</TableCell>
                 <TableCell>{order.phoneNumber}</TableCell>
-                <TableCell>₹{order.total.toFixed(2)}</TableCell>
+                <TableCell>
+                  {" "}
+                  {order.total !== null ? `₹${order.total.toFixed(2)}` : "N/A"}
+                </TableCell>
                 <TableCell>
                   {format(
                     new Date(order.createdAt),

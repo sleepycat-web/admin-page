@@ -26,30 +26,43 @@ export default async function handler(
       endDateTime.setDate(endDateTime.getDate() + 1); // Add one day
       endDateTime.setHours(5, 29, 59, 999); // Set to 5:29:59.999 AM
 
-      // Fetch orders
-      let orderQuery: Record<string, unknown> = {
+      // Fetch orders (new logic)
+      let orderQuery: Record<string, any> = {
         createdAt: { $gte: startDateTime, $lt: endDateTime },
       };
 
+      let orderCollections = ["OrderSevoke", "OrderDagapur"];
       if (branch !== "all") {
-        orderQuery.selectedLocation = branch;
+        orderCollections = [`Order${branch}`];
       }
 
-      const orders = await db
-        .collection("OrderSevoke")
-        .aggregate([
-          { $match: orderQuery },
-          {
-            $project: {
-              createdAt: 1,
-              total: 1,
-              selectedLocation: 1,
+      const orderPromises = orderCollections.map((collection) =>
+        db
+          .collection(collection)
+          .aggregate([
+            { $match: orderQuery },
+            {
+              $group: {
+                _id: {
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: "$createdAt",
+                    timezone: "+05:30",
+                  },
+                },
+                numberOfOrders: { $sum: 1 },
+                revenue: { $sum: "$total" },
+              },
             },
-          },
-        ])
-        .toArray();
+            { $sort: { _id: 1 } },
+          ])
+          .toArray()
+      );
 
-      // Fetch expenses
+      const ordersArrays = await Promise.all(orderPromises);
+      const orders = ordersArrays.flat();
+
+      // Fetch expenses (original logic)
       let expenseCollections = ["ExpenseSevoke", "ExpenseDagapur"];
       if (branch !== "all") {
         expenseCollections = [`Expense${branch}`];
@@ -57,6 +70,9 @@ export default async function handler(
 
       const expenseQuery = {
         createdAt: { $gte: startDateTime, $lt: endDateTime },
+        category: {
+          $nin: ["UPI Payment", "Extra Cash Payment", "Extra UPI Payment"],
+        },
       };
 
       const expensesPromises = expenseCollections.map((collection) =>
@@ -80,30 +96,25 @@ export default async function handler(
         };
       });
 
-      // Process orders
+      // Process orders (new logic)
       orders.forEach((order) => {
-        const orderDate = new Date(order.createdAt);
-        const dateStr = getAdjustedDateStr(orderDate);
+        const dateStr = order._id;
         if (dailyStats[dateStr]) {
-          dailyStats[dateStr].numberOfOrders++;
-          dailyStats[dateStr].revenue += order.total;
+          dailyStats[dateStr].numberOfOrders += order.numberOfOrders;
+          dailyStats[dateStr].revenue += order.revenue;
         }
       });
 
-      // Process expenses
+      // Process expenses (original logic)
       expenses.forEach((expense) => {
         const expenseDate = new Date(expense.createdAt);
-        const dateStr = getAdjustedDateStr(expenseDate);
+        const adjustedExpenseDate = new Date(
+          expenseDate.getTime() - (5 * 60 + 30) * 60000
+        ); // Subtract 5 hours and 30 minutes
+        const dateStr = adjustedExpenseDate.toISOString().split("T")[0];
 
         if (dailyStats[dateStr]) {
-          if (
-            expense.category === "Extra Cash Payment" ||
-            expense.category === "Extra UPI Payment"
-          ) {
-            dailyStats[dateStr].revenue += expense.amount;
-          } else {
-            dailyStats[dateStr].generalExpenses += expense.amount;
-          }
+          dailyStats[dateStr].generalExpenses += expense.amount;
         }
       });
 

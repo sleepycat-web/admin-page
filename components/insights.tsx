@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Loader2 } from "lucide-react";
 
 interface DateRange {
   start: Date;
@@ -42,9 +43,11 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     orders: 0,
     expenses: 0,
   });
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchInsightsData = useCallback(async () => {
+     setIsLoading(true);
     try {
       const response = await fetch("/api/insights", {
         method: "POST",
@@ -90,6 +93,8 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     } catch (error) {
       console.error("Error fetching insights data:", error);
       setError(`Error fetching insights data: ${(error as Error).message}`);
+    } finally {
+      setIsLoading(false);
     }
   }, [dateRange, selectedBranch]);
 
@@ -106,14 +111,14 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     });
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
 
   return (
     <div className="space-y-4">
@@ -125,21 +130,24 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
           <CardHeader>Total Revenue</CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(totals.revenue)}
+              {isLoading ? <Loader2 /> : formatCurrency(totals.revenue)}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>Total Orders</CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totals.orders}</div>
+            <div className="text-2xl font-bold">
+              {" "}
+              {isLoading ? <Loader2 /> : formatCurrency(totals.orders)}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>Total Expenses </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(totals.expenses)}
+              {isLoading ? <Loader2 /> : formatCurrency(totals.expenses)}
             </div>
           </CardContent>
         </Card>
@@ -149,26 +157,32 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
           <CardTitle>Daily Insights</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Revenue</TableHead>
-                <TableHead>Orders</TableHead>
-                <TableHead>Expenses</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {dailyData.map((day: DailyData) => (
-                <TableRow key={day.date}>
-                  <TableCell>{formatDate(day.date)}</TableCell>
-                  <TableCell>{formatCurrency(day.revenue)}</TableCell>
-                  <TableCell>{day.numberOfOrders}</TableCell>
-                  <TableCell>{formatCurrency(day.generalExpenses)}</TableCell>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <Loader2 />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Revenue</TableHead>
+                  <TableHead>Orders</TableHead>
+                  <TableHead>Expenses</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {dailyData.map((day: DailyData) => (
+                  <TableRow key={day.date}>
+                    <TableCell>{formatDate(day.date)}</TableCell>
+                    <TableCell>{formatCurrency(day.revenue)}</TableCell>
+                    <TableCell>{day.numberOfOrders}</TableCell>
+                    <TableCell>{formatCurrency(day.generalExpenses)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
