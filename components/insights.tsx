@@ -34,7 +34,9 @@ interface Totals {
   orders: number;
   expenses: number;
   userCount: number;
-}
+
+  newUserCount: number;
+ }
 
 const InsightsComponent: React.FC<InsightsComponentProps> = ({
   dateRange,
@@ -45,68 +47,87 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     revenue: 0,
     orders: 0,
     expenses: 0,
-    userCount: 0,
+    userCount: 0, 
+    newUserCount: 0,
+   
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
- const fetchInsightsData = useCallback(async () => {
-   setIsLoading(true);
-   try {
-     const [insightsResponse, userCountResponse] = await Promise.all([
-       fetch("/api/insights", {
-         method: "POST",
-         headers: {
-           "Content-Type": "application/json",
-         },
-         body: JSON.stringify({
-           startDate: dateRange.start.toISOString(),
-           endDate: dateRange.end.toISOString(),
-           branch: selectedBranch,
-         }),
-       }),
-       fetch("/api/usercount"),
-     ]);
- const data: DailyData[] = await insightsResponse.json();
- const { count: userCount } = await userCountResponse.json();
+const fetchInsightsData = useCallback(async () => {
+  setIsLoading(true);
+  try {
+    const [insightsResponse, userCountResponse] = await Promise.all([
+      fetch("/api/insights", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startDate: dateRange.start.toISOString(),
+          endDate: dateRange.end.toISOString(),
+          branch: selectedBranch,
+        }),
+      }),
+      fetch("/api/usercount", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startDate: dateRange.start.toISOString(),
+          endDate: dateRange.end.toISOString(),
+        }),
+      }),
+    ]);
 
-     if (!Array.isArray(data)) {
-       throw new Error("Received data is not an array");
-     }
+    const data: DailyData[] = await insightsResponse.json();
+    const { totalCount: userCount, newUserCount } =
+      await userCountResponse.json();
 
-     // Filter out entries with invalid or zero values
-     const validData = data.filter(
-       (day) =>
-         day.revenue > 0 || day.numberOfOrders > 0 || day.generalExpenses > 0
-     );
+    if (!Array.isArray(data)) {
+      throw new Error("Received data is not an array");
+    }
 
-     // Sort the data by date
-     const sortedData = validData.sort(
-       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-     );
+    // Filter out entries with invalid or zero values
+    const validData = data.filter(
+      (day) =>
+        day.revenue > 0 || day.numberOfOrders > 0 || day.generalExpenses > 0
+    );
 
-     setDailyData(sortedData);
+    // Sort the data by date
+    const sortedData = validData.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
 
-     // Calculate totals
-     const newTotals = sortedData.reduce(
-       (acc: Totals, day: DailyData) => ({
-         revenue: acc.revenue + day.revenue,
-         orders: acc.orders + day.numberOfOrders,
-         expenses: acc.expenses + day.generalExpenses,
-         userCount: userCount,
-       }),
-       { revenue: 0, orders: 0, expenses: 0, userCount: userCount }
-     );
-     setTotals(newTotals);
-     setError(null);
-   } catch (error) {
-     console.error("Error fetching insights data:", error);
-     setError(`Error fetching insights data: ${(error as Error).message}`);
-   } finally {
-     setIsLoading(false);
-   }
- }, [dateRange, selectedBranch]);
+    setDailyData(sortedData);
 
+    // Calculate totals
+    const newTotals = sortedData.reduce(
+      (acc: Totals, day: DailyData) => ({
+        revenue: acc.revenue + day.revenue,
+        orders: acc.orders + day.numberOfOrders,
+        expenses: acc.expenses + day.generalExpenses,
+        userCount: userCount,
+        newUserCount: newUserCount,
+      }),
+      {
+        revenue: 0,
+        orders: 0,
+        expenses: 0,
+        userCount: userCount,
+        newUserCount: newUserCount,
+      }
+    );
+    setTotals(newTotals);
+    setError(null);
+  } catch (error) {
+    console.error("Error fetching insights data:", error);
+    setError(`Error fetching insights data: ${(error as Error).message}`);
+  } finally {
+    setIsLoading(false);
+  }
+}, [dateRange, selectedBranch]);
   useEffect(() => {
     fetchInsightsData();
   }, [fetchInsightsData]);
@@ -135,7 +156,9 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
       )}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader>Total Revenue</CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            Total Revenue
+          </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {isLoading ? (
@@ -147,7 +170,9 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>Total Orders</CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            Total Orders
+          </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {isLoading ? <Loader2 className="animate-spin" /> : totals.orders}
@@ -155,7 +180,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>Total Expenses</CardHeader>
+          <CardHeader  className="flex flex-row items-center justify-between space-y-0 pb-2">Total Expenses</CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {isLoading ? (
@@ -167,12 +192,19 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>Total Users</CardHeader>
+          <CardHeader  className="flex flex-row items-center justify-between space-y-0 pb-2">Total Users</CardHeader>
           <CardContent>
             {isLoading ? (
               <Loader2 className="animate-spin" />
             ) : (
-              <div className="text-2xl bold">{ totals.userCount}</div>
+              <div>
+                <div className="text-2xl font-bold">{totals.userCount}</div>
+                <div>
+                  <div className="text-xs">
+                    {totals.newUserCount} new sign-ups in the last time period
+                  </div>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
