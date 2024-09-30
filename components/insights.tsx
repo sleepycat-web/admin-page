@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Loader2 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 interface DateRange {
   start: Date;
@@ -31,6 +33,7 @@ interface Totals {
   revenue: number;
   orders: number;
   expenses: number;
+  userCount: number;
 }
 
 const InsightsComponent: React.FC<InsightsComponentProps> = ({
@@ -42,61 +45,67 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     revenue: 0,
     orders: 0,
     expenses: 0,
+    userCount: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchInsightsData = useCallback(async () => {
-     setIsLoading(true);
-    try {
-      const response = await fetch("/api/insights", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          startDate: dateRange.start.toISOString(),
-          endDate: dateRange.end.toISOString(),
-          branch: selectedBranch,
-        }),
-      });
-      const data = await response.json();
+ const fetchInsightsData = useCallback(async () => {
+   setIsLoading(true);
+   try {
+     const [insightsResponse, userCountResponse] = await Promise.all([
+       fetch("/api/insights", {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+         },
+         body: JSON.stringify({
+           startDate: dateRange.start.toISOString(),
+           endDate: dateRange.end.toISOString(),
+           branch: selectedBranch,
+         }),
+       }),
+       fetch("/api/usercount"),
+     ]);
+ const data: DailyData[] = await insightsResponse.json();
+ const { count: userCount } = await userCountResponse.json();
 
-      if (!Array.isArray(data)) {
-        throw new Error("Received data is not an array");
-      }
+     if (!Array.isArray(data)) {
+       throw new Error("Received data is not an array");
+     }
 
-      // Filter out entries with invalid or zero values
-      const validData = data.filter(
-        (day) =>
-          day.revenue > 0 || day.numberOfOrders > 0 || day.generalExpenses > 0
-      );
+     // Filter out entries with invalid or zero values
+     const validData = data.filter(
+       (day) =>
+         day.revenue > 0 || day.numberOfOrders > 0 || day.generalExpenses > 0
+     );
 
-      // Sort the data by date
-      const sortedData = validData.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
+     // Sort the data by date
+     const sortedData = validData.sort(
+       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+     );
 
-      setDailyData(sortedData);
+     setDailyData(sortedData);
 
-      // Calculate totals
-      const newTotals = sortedData.reduce(
-        (acc: Totals, day: DailyData) => ({
-          revenue: acc.revenue + day.revenue,
-          orders: acc.orders + day.numberOfOrders,
-          expenses: acc.expenses + day.generalExpenses,
-        }),
-        { revenue: 0, orders: 0, expenses: 0 }
-      );
-      setTotals(newTotals);
-      setError(null);
-    } catch (error) {
-      console.error("Error fetching insights data:", error);
-      setError(`Error fetching insights data: ${(error as Error).message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dateRange, selectedBranch]);
+     // Calculate totals
+     const newTotals = sortedData.reduce(
+       (acc: Totals, day: DailyData) => ({
+         revenue: acc.revenue + day.revenue,
+         orders: acc.orders + day.numberOfOrders,
+         expenses: acc.expenses + day.generalExpenses,
+         userCount: userCount,
+       }),
+       { revenue: 0, orders: 0, expenses: 0, userCount: userCount }
+     );
+     setTotals(newTotals);
+     setError(null);
+   } catch (error) {
+     console.error("Error fetching insights data:", error);
+     setError(`Error fetching insights data: ${(error as Error).message}`);
+   } finally {
+     setIsLoading(false);
+   }
+ }, [dateRange, selectedBranch]);
 
   useEffect(() => {
     fetchInsightsData();
@@ -107,30 +116,33 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
-      year: "numeric",
     });
   };
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-};
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
 
   return (
     <div className="space-y-4">
       {error && (
         <div className="text-red-500 p-4 bg-red-100 rounded">{error}</div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader>Total Revenue</CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? <Loader2 /> : formatCurrency(totals.revenue)}
+              {isLoading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                formatCurrency(totals.revenue)
+              )}
             </div>
           </CardContent>
         </Card>
@@ -138,50 +150,86 @@ const formatCurrency = (value: number) => {
           <CardHeader>Total Orders</CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {" "}
-              {isLoading ? <Loader2 /> : formatCurrency(totals.orders)}
+              {isLoading ? <Loader2 className="animate-spin" /> : totals.orders}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>Total Expenses </CardHeader>
+          <CardHeader>Total Expenses</CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? <Loader2 /> : formatCurrency(totals.expenses)}
+              {isLoading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                formatCurrency(totals.expenses)
+              )}
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>Total Users</CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <div className="text-2xl bold">{ totals.userCount}</div>
+            )}
           </CardContent>
         </Card>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Daily Insights</CardTitle>
+          <CardTitle>Daily Revenue, Orders, and Expenses</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center items-center h-32">
-              <Loader2 />
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="animate-spin" />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Revenue</TableHead>
-                  <TableHead>Orders</TableHead>
-                  <TableHead>Expenses</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dailyData.map((day: DailyData) => (
-                  <TableRow key={day.date}>
-                    <TableCell>{formatDate(day.date)}</TableCell>
-                    <TableCell>{formatCurrency(day.revenue)}</TableCell>
-                    <TableCell>{day.numberOfOrders}</TableCell>
-                    <TableCell>{formatCurrency(day.generalExpenses)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={dailyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tickFormatter={formatDate} />
+                <YAxis
+                  yAxisId="left"
+                  tickFormatter={(value) => formatCurrency(value)}
+                />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    if (name === "Revenue" || name === "Expenses") {
+                      return [formatCurrency(value), name];
+                    }
+                    return [value, name];
+                  }}
+                  labelFormatter={(label) => formatDate(label as string)}
+                />
+                <Legend />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="revenue"
+                  name="Revenue"
+                  stroke="#8884d8"
+                  activeDot={{ r: 8 }}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="numberOfOrders"
+                  name="Orders"
+                  stroke="#82ca9d"
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="generalExpenses"
+                  name="Expenses"
+                  stroke="#6A8FBF"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           )}
         </CardContent>
       </Card>
