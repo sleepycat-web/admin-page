@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 
 interface OrderItem {
   item: {
@@ -52,7 +52,8 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [totalOrdersSum, setTotalOrdersSum] = useState(0);
-  
+  const [isLoading, setIsLoading] = useState(true);
+
 const calculateTotalOrdersSum = () => {
   const sum = filteredOrders.reduce(
     (acc, order) => acc + (order.total || 0),
@@ -72,48 +73,62 @@ useEffect(() => {
   filterAndSortOrders();
 }, [orders, searchTerm, sortConfig]);
   
-  const fetchOrders = async () => {
-    const response = await fetch("/api/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        startDate: dateRange.start,
-        endDate: dateRange.end,
-        branch: selectedBranch,
-      }),
-    });
+   const fetchOrders = async () => {
+     setIsLoading(true);
+     try {
+       const response = await fetch("/api/orders", {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+         },
+         body: JSON.stringify({
+           startDate: dateRange.start,
+           endDate: dateRange.end,
+           branch: selectedBranch,
+         }),
+       });
 
-    if (response.ok) {
-      const data = await response.json();
-      setOrders(data);
-    } else {
-      console.error("Failed to fetch orders");
-    }
-  };
+       if (response.ok) {
+         const data = await response.json();
+         setOrders(data);
+       } else {
+         console.error("Failed to fetch orders");
+       }
+     } catch (error) {
+       console.error("Error fetching orders:", error);
+     } finally {
+       setIsLoading(false);
+     }
+   };
 
- const filterAndSortOrders = () => {
-   const filtered = orders.filter(
-     (order) =>
-       order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       order.phoneNumber.includes(searchTerm)
-   );
+const filterAndSortOrders = () => {
+  const searchTermLower = searchTerm.toLowerCase();
+  const filtered = orders.filter((order) => {
+    return (
+      order.customerName.toLowerCase().includes(searchTermLower) ||
+      order.phoneNumber.includes(searchTermLower) ||
+      (order.total?.toString() || "").includes(searchTermLower) ||
+      order.status.toLowerCase().includes(searchTermLower) ||
+      format(new Date(order.createdAt), "MMMM d yyyy")
+        .toLowerCase()
+        .includes(searchTermLower)
+    );
+  });
 
-   filtered.sort((a, b) => {
-     const aValue = a[sortConfig.key];
-     const bValue = b[sortConfig.key];
+  filtered.sort((a, b) => {
+    const aValue = a[sortConfig.key];
+    const bValue = b[sortConfig.key];
 
-     if (aValue === null || aValue === undefined) return 1;
-     if (bValue === null || bValue === undefined) return -1;
+    if (aValue === null || aValue === undefined) return 1;
+    if (bValue === null || bValue === undefined) return -1;
 
-     if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-     if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-     return 0;
-   });
+    if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+    return 0;
+  });
 
-   setFilteredOrders(filtered);
- };
+  setFilteredOrders(filtered);
+};
 
 
     const sortOrders = (key: keyof Order) => {
@@ -149,6 +164,7 @@ useEffect(() => {
       return newState;
     });
   };
+ 
 
   return (
     <div className="space-y-4">
@@ -201,84 +217,95 @@ useEffect(() => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredOrders.map((order) => (
-            <React.Fragment key={order._id}>
-              <TableRow>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleOrderExpansion(order._id)}
-                  >
-                    {expandedOrders.has(order._id) ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TableCell>
-                <TableCell>{order.customerName}</TableCell>
-                <TableCell>{order.phoneNumber}</TableCell>
-                <TableCell>
-                  {" "}
-                  {order.total !== null ? `₹${order.total.toFixed(2)}` : "N/A"}
-                </TableCell>
-                <TableCell>
-                  {format(
-                    new Date(order.createdAt),
-                    " MMMM d yyyy 'at' h:mm a"
-                  )}
-                </TableCell>
-                <TableCell>{order.status}</TableCell>
-              </TableRow>
-              {expandedOrders.has(order._id) && (
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={6} className="h-24 text-center">
+                <div className="flex justify-center items-center">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredOrders.map((order) => (
+              <React.Fragment key={order._id}>
                 <TableRow>
-                  <TableCell colSpan={6}>
-                    <div className="p-4">
-                      <div className="space-y-4">
-                        {order.items.map((item, index) => (
-                          <div key={index} className="border-b pb-2">
-                            <div className="flex justify-between items-start">
-                              <div className="font-medium">
-                                {item.item.name}
-                              </div>
-                              <div className="text-right">
-                                <div>Qty: {item.quantity}</div>
-                                <div>₹{item.totalPrice.toFixed(2)}</div>
-                              </div>
-                            </div>
-                            <div className="text-sm grid">
-                              {Object.entries(item.selectedOptions).map(
-                                ([optionName, optionValues]) => (
-                                  <div key={optionName}>
-                                    <span className="font-semibold">
-                                      {optionName}:
-                                    </span>{" "}
-                                    {optionValues.join(", ")}
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        {order.items.length > 1 && (
-                          <div className="flex justify-end font-semibold">
-                            Total: ₹
-                            {order.items
-                              .reduce((sum, item) => sum + item.totalPrice, 0)
-                              .toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleOrderExpansion(order._id)}
+                    >
+                      {expandedOrders.has(order._id) ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
                   </TableCell>
+                  <TableCell>{order.customerName}</TableCell>
+                  <TableCell>{order.phoneNumber}</TableCell>
+                  <TableCell>
+                    {order.total !== null
+                      ? `₹${order.total.toFixed(2)}`
+                      : "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    {format(
+                      new Date(order.createdAt),
+                      "MMMM d yyyy 'at' h:mm a"
+                    )}
+                  </TableCell>
+                  <TableCell>{order.status}</TableCell>
                 </TableRow>
-              )}
-            </React.Fragment>
-          ))}
+                {expandedOrders.has(order._id) && (
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <div className="p-4">
+                        <div className="space-y-4">
+                          {order.items.map((item, index) => (
+                            <div key={index} className="border-b pb-2">
+                              <div className="flex justify-between items-start">
+                                <div className="font-medium">
+                                  {item.item.name}
+                                </div>
+                                <div className="text-right">
+                                  <div>Qty: {item.quantity}</div>
+                                  <div>₹{item.totalPrice.toFixed(2)}</div>
+                                </div>
+                              </div>
+                              <div className="text-sm grid">
+                                {Object.entries(item.selectedOptions).map(
+                                  ([optionName, optionValues]) => (
+                                    <div key={optionName}>
+                                      <span className="font-semibold">
+                                        {optionName}:
+                                      </span>{" "}
+                                      {optionValues.join(", ")}
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          {order.items.length > 1 && (
+                            <div className="flex justify-end font-semibold">
+                              Total: ₹
+                              {order.items
+                                .reduce((sum, item) => sum + item.totalPrice, 0)
+                                .toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </React.Fragment>
+            ))
+          )}
         </TableBody>
       </Table>
-      {totalOrdersSum > 0 && (
+      {!isLoading && totalOrdersSum > 0 && (
         <div className="flex justify-end mt-4 font-semibold text-lg">
           Total of All Orders: ₹{totalOrdersSum.toFixed(2)}
         </div>

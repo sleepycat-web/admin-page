@@ -15,7 +15,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 
 interface Expense {
@@ -40,11 +42,26 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
   selectedBranch,
 }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [total, setTotal] = useState(0);
   const [category, setCategory] = useState("General");
   const [sortColumn, setSortColumn] = useState<keyof Expense>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const categories = [
+    "General",
+    "Online Payments",
+    "Cash Payments",
+    "Supplier",
+    "Drawings",
+    "Suspense",
+    "Salary",
+    "Rent",
+    "Electricity",
+    "Others",
+  ];
 
   const formatDateRange = () => {
     const startDate = new Date(0);
@@ -62,6 +79,10 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
     fetchExpenses();
   }, [dateRange, selectedBranch, category]);
 
+  useEffect(() => {
+    filterExpenses();
+  }, [expenses, searchTerm]);
+
   const fetchExpenses = async () => {
     setIsLoading(true);
     try {
@@ -74,7 +95,7 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
           branch: selectedBranch,
           startDate: dateRange.start.toISOString(),
           endDate: dateRange.end.toISOString(),
-          category: category,
+          category,
         }),
       });
       const data = await response.json();
@@ -88,6 +109,16 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
       setIsLoading(false);
     }
   };
+ const filterExpenses = () => {
+   const filtered = expenses.filter((expense) =>
+     Object.values(expense).some((value) => {
+       const stringValue = value.toString().toLowerCase();
+       const searchTerms = searchTerm.toLowerCase().split(" ");
+       return searchTerms.every((term) => stringValue.includes(term));
+     })
+   );
+   setFilteredExpenses(filtered);
+ };
 
   const handleSort = (column: keyof Expense) => {
     if (column === sortColumn) {
@@ -98,12 +129,12 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
     }
   };
 
-  const sortedExpenses = [...(expenses || [])].sort((a, b) => {
+  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
     const aValue = a[sortColumn];
     const bValue = b[sortColumn];
 
     if (aValue === undefined || bValue === undefined) {
-      return 0; // Handle cases where the property doesn't exist
+      return 0;
     }
 
     if (typeof aValue === "string" && typeof bValue === "string") {
@@ -125,16 +156,28 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
 
   return (
     <>
-      <Select value={category} onValueChange={setCategory}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Select category" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="General">General</SelectItem>
-          <SelectItem value="Online Payments">Online Payments</SelectItem>
-          <SelectItem value="Cash Payments">Cash Payments</SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="mb-4">
+        <Input
+          type="text"
+          placeholder="Search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full max-w-sm mb-2"
+        />
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select category" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((cat, index) => (
+              <React.Fragment key={cat}>
+                <SelectItem value={cat}>{cat}</SelectItem>
+                {index === 2 && <SelectSeparator />}
+              </React.Fragment>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center items-center h-40">
