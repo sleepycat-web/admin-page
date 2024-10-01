@@ -36,7 +36,7 @@ interface Totals {
   userCount: number;
 
   newUserCount: number;
- }
+}
 
 const InsightsComponent: React.FC<InsightsComponentProps> = ({
   dateRange,
@@ -47,87 +47,86 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     revenue: 0,
     orders: 0,
     expenses: 0,
-    userCount: 0, 
+    userCount: 0,
     newUserCount: 0,
-   
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-const fetchInsightsData = useCallback(async () => {
-  setIsLoading(true);
-  try {
-    const [insightsResponse, userCountResponse] = await Promise.all([
-      fetch("/api/insights", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          startDate: dateRange.start.toISOString(),
-          endDate: dateRange.end.toISOString(),
-          branch: selectedBranch,
+  const fetchInsightsData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [insightsResponse, userCountResponse] = await Promise.all([
+        fetch("/api/insights", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            startDate: dateRange.start.toISOString(),
+            endDate: dateRange.end.toISOString(),
+            branch: selectedBranch,
+          }),
         }),
-      }),
-      fetch("/api/usercount", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          startDate: dateRange.start.toISOString(),
-          endDate: dateRange.end.toISOString(),
+        fetch("/api/usercount", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            startDate: dateRange.start.toISOString(),
+            endDate: dateRange.end.toISOString(),
+          }),
         }),
-      }),
-    ]);
+      ]);
 
-    const data: DailyData[] = await insightsResponse.json();
-    const { totalCount: userCount, newUserCount } =
-      await userCountResponse.json();
+      const data: DailyData[] = await insightsResponse.json();
+      const { totalCount: userCount, newUserCount } =
+        await userCountResponse.json();
 
-    if (!Array.isArray(data)) {
-      throw new Error("Received data is not an array");
-    }
-
-    // Filter out entries with invalid or zero values
-    const validData = data.filter(
-      (day) =>
-        day.revenue > 0 || day.numberOfOrders > 0 || day.generalExpenses > 0
-    );
-
-    // Sort the data by date
-    const sortedData = validData.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-
-    setDailyData(sortedData);
-
-    // Calculate totals
-    const newTotals = sortedData.reduce(
-      (acc: Totals, day: DailyData) => ({
-        revenue: acc.revenue + day.revenue,
-        orders: acc.orders + day.numberOfOrders,
-        expenses: acc.expenses + day.generalExpenses,
-        userCount: userCount,
-        newUserCount: newUserCount,
-      }),
-      {
-        revenue: 0,
-        orders: 0,
-        expenses: 0,
-        userCount: userCount,
-        newUserCount: newUserCount,
+      if (!Array.isArray(data)) {
+        throw new Error("Received data is not an array");
       }
-    );
-    setTotals(newTotals);
-    setError(null);
-  } catch (error) {
-    console.error("Error fetching insights data:", error);
-    setError(`Error fetching insights data: ${(error as Error).message}`);
-  } finally {
-    setIsLoading(false);
-  }
-}, [dateRange, selectedBranch]);
+
+      // Filter out entries with invalid or zero values
+      const validData = data.filter(
+        (day) =>
+          day.revenue > 0 || day.numberOfOrders > 0 || day.generalExpenses > 0
+      );
+
+      // Sort the data by date
+      const sortedData = validData.sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+
+      setDailyData(sortedData);
+
+      // Calculate totals
+      const newTotals = sortedData.reduce(
+        (acc: Totals, day: DailyData) => ({
+          revenue: acc.revenue + day.revenue,
+          orders: acc.orders + day.numberOfOrders,
+          expenses: acc.expenses + day.generalExpenses,
+          userCount: userCount,
+          newUserCount: newUserCount,
+        }),
+        {
+          revenue: 0,
+          orders: 0,
+          expenses: 0,
+          userCount: userCount,
+          newUserCount: newUserCount,
+        }
+      );
+      setTotals(newTotals);
+      setError(null);
+    } catch (error) {
+      console.error("Error fetching insights data:", error);
+      setError(`Error fetching insights data: ${(error as Error).message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [dateRange, selectedBranch]);
   useEffect(() => {
     fetchInsightsData();
   }, [fetchInsightsData]);
@@ -160,11 +159,18 @@ const fetchInsightsData = useCallback(async () => {
             Total Revenue
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="">
               {isLoading ? (
                 <Loader2 className="animate-spin" />
               ) : (
-                formatCurrency(totals.revenue)
+                <>
+                  <div className="text-2xl font-bold">
+                    {" "}
+                    {formatCurrency(totals.revenue)}
+                  </div>
+
+                  <div className="text-xs">Here will be %</div>
+                </>
               )}
             </div>
           </CardContent>
@@ -174,25 +180,44 @@ const fetchInsightsData = useCallback(async () => {
             Total Orders
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? <Loader2 className="animate-spin" /> : totals.orders}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader  className="flex flex-row items-center justify-between space-y-0 pb-2">Total Expenses</CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="">
               {isLoading ? (
                 <Loader2 className="animate-spin" />
               ) : (
-                formatCurrency(totals.expenses)
+                <>
+                  <div className="text-2xl font-bold"> {totals.orders}</div>
+
+                  <div className="text-xs">Here will be %</div>
+                </>
               )}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader  className="flex flex-row items-center justify-between space-y-0 pb-2">Total Users</CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            Total Expenses
+          </CardHeader>
+          <CardContent>
+            <div className="">
+              {isLoading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">
+                    {" "}
+                    {formatCurrency(totals.expenses)}
+                  </div>
+
+                  <div className="text-xs">Here will be %</div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            Total Users
+          </CardHeader>
           <CardContent>
             {isLoading ? (
               <Loader2 className="animate-spin" />

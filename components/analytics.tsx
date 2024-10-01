@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState,   } from "react";
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -17,10 +16,9 @@ import {
 import { Button } from "@/components/ui/button";
 
 import { CalendarIcon, X } from "lucide-react";
-import { format, subDays } from "date-fns";
+import { format } from "date-fns";
 import InsightsComponent from "./insights";
-import { Loader2 } from "lucide-react";
-import { DateRange } from "react-day-picker";
+ import { DateRange } from "react-day-picker";
 import ExpensesComponent from "./expenses";
 import OrdersComponent from "./orders";
 // These would be separate components in real implementation
@@ -32,16 +30,7 @@ const Dashboard = () => {
     end: today,
   });
   const [selectedDateRange, setSelectedDateRange] = useState("allTime");
-  const [selectedBranch, setSelectedBranch] = useState("all");
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [growthPercentage, setGrowthPercentage] = useState<number | null>(null);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [orderGrowthPercentage, setOrderGrowthPercentage] = useState<
-    number | null
-  >(null);
-  const [newSignups, setNewSignups] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedBranch, setSelectedBranch] = useState("all"); 
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(
     undefined
@@ -134,18 +123,18 @@ const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
     }
   };
 
-  const getGrowthDisplay = (value: number | null, label: string) => {
-    if (value === null) {
-      return <p className="text-xs">Growth data unavailable</p>;
-    }
-    const color = value >= 0 ? "text-green-600" : "text-red-600";
-    return (
-      <p className={`text-xs ${color}`}>
-        {value.toFixed(2)}% {value >= 0 ? "growth" : "decline"} in {label} from
-        previous period
-      </p>
-    );
-  };
+  // const getGrowthDisplay = (value: number | null, label: string) => {
+  //   if (value === null) {
+  //     return <p className="text-xs">Growth data unavailable</p>;
+  //   }
+  //   const color = value >= 0 ? "text-green-600" : "text-red-600";
+  //   return (
+  //     <p className={`text-xs ${color}`}>
+  //       {value.toFixed(2)}% {value >= 0 ? "growth" : "decline"} in {label} from
+  //       previous period
+  //     </p>
+  //   );
+  // };
 
   return (
     <div className="p-4 space-y-4">

@@ -7,7 +7,13 @@ interface DailyStats {
   generalExpenses: number;
   revenue: number;
 }
-
+// Add this new interface for the order query
+interface OrderQuery {
+  createdAt: {
+    $gte: Date;
+    $lt: Date;
+  };
+}
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -27,9 +33,9 @@ export default async function handler(
       endDateTime.setHours(5, 29, 59, 999); // Set to 5:29:59.999 AM
 
       // Fetch orders (new logic)
-      let orderQuery: Record<string, any> = {
-        createdAt: { $gte: startDateTime, $lt: endDateTime },
-      };
+       const orderQuery: OrderQuery = {
+         createdAt: { $gte: startDateTime, $lt: endDateTime },
+       };
 
       let orderCollections = ["OrderSevoke", "OrderDagapur"];
       if (branch !== "all") {
@@ -138,15 +144,4 @@ function getDateRange(start: Date, end: Date): Date[] {
     current.setDate(current.getDate() + 1);
   }
   return dates;
-}
-
-function getAdjustedDateStr(date: Date): string {
-  const adjustedDate = new Date(date);
-  if (
-    adjustedDate.getHours() < 5 ||
-    (adjustedDate.getHours() === 5 && adjustedDate.getMinutes() < 30)
-  ) {
-    adjustedDate.setDate(adjustedDate.getDate() - 1);
-  }
-  return adjustedDate.toISOString().split("T")[0];
 }
