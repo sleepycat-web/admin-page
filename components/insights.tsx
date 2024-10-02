@@ -23,7 +23,7 @@ interface DailyData {
   numberOfOrders: number;
   generalExpenses: number;
 }
-interface GrowthOrAverage {
+interface Growth {
   revenue: number;
   orders: number;
   expenses: number;
@@ -60,7 +60,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
- const [growthOrAverage, setGrowthOrAverage] = useState<GrowthOrAverage>({
+ const [growth, setGrowth] = useState<Growth>({
    revenue: 0,
    orders: 0,
    expenses: 0,
@@ -106,14 +106,11 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
       const { totalCount: userCount, newUserCount } =
         await userCountResponse.json();
 
-      const percentagesOrAverages: GrowthOrAverage =
-        await percentageResponse.json();
-      console.log(
-        "Received growth test data show check data:",
-        percentagesOrAverages
-      );
-
-      setGrowthOrAverage(percentagesOrAverages);
+     const percentages: Growth = await percentageResponse.json();
+     console.log("API Response:", percentages);
+     setGrowth(percentages);
+      console.log("State after setGrowth:", growth);
+      
       setIsGrowth(dateRange.start > CUTOFF_DATE);
       if (!Array.isArray(data)) {
         throw new Error("Received data is not an array");
@@ -155,15 +152,24 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
           (1000 * 60 * 60 * 24)
       );
 
-      // Calculate daily averages
+
+    // Determine if it's a growth scenario
+    const isGrowthScenario = dateRange.start > CUTOFF_DATE;
+    setIsGrowth(isGrowthScenario);
+
+    if (!isGrowthScenario) {
+      // Calculate daily averages only if it's not a growth scenario
       const averages = {
         revenue: newTotals.revenue / daysSinceCutoff,
         orders: newTotals.orders / daysSinceCutoff,
         expenses: newTotals.expenses / daysSinceCutoff,
       };
-
+      setGrowth(averages);
+    } else {
+      // If it's a growth scenario, use the percentages from the API
+      setGrowth(percentages);
+    }
       setTotals(newTotals);
-      setGrowthOrAverage(averages);
       setError(null);
     } catch (error) {
       console.error("Error fetching insights data:", error);
@@ -189,49 +195,24 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
   };
-const formatNumber = (value: number) => {
-  return new Intl.NumberFormat("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-};
-  const roundDownToInteger = (num: number) => Math.floor(num);
-
-  const calculateDaysForAverage = (startDate: Date, endDate: Date) => {
-    const effectiveStartDate =
-      startDate < CUTOFF_DATE ? CUTOFF_DATE : startDate;
-    const daysDiff = Math.ceil(
-      (endDate.getTime() - effectiveStartDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return Math.max(1, daysDiff); // Ensure we don't divide by zero
-  };
+ 
 
   // Update the renderGrowthOrAverage function
  const renderGrowthOrAverage = (
    value: number,
-   metricName: keyof typeof growthOrAverage
+   metricName: keyof typeof growth
  ) => {
-   // Log the values being rendered
-   console.log(`Rendering for ${metricName}:`, {
-     isGrowth,
-     value,
-     displayValue: isGrowth
-       ? `${Math.abs(value).toFixed(2)}%`
-       : value.toFixed(2),
-   });
-
    if (isGrowth) {
      const isPositive = value > 0;
      const color = isPositive ? "text-green-500" : "text-red-500";
      const Icon = isPositive ? TrendingUp : TrendingDown;
-     const displayValue = Math.abs(value).toFixed(2);
      return (
        <span className={`${color} flex items-center`}>
-         {displayValue}%
+         {Math.abs(value).toFixed(2)}%
          <Icon className="ml-1" />
        </span>
      );
@@ -276,7 +257,7 @@ const formatNumber = (value: number) => {
                   </div>
 
                   <div className="text-xs">
-                    {renderGrowthOrAverage(growthOrAverage.revenue, "revenue")}
+                    {renderGrowthOrAverage(growth.revenue, "revenue")}
                   </div>
                 </>
               )}
@@ -295,7 +276,7 @@ const formatNumber = (value: number) => {
                 <>
                   <div className="text-2xl font-bold"> {totals.orders}</div>
                   <div className="text-xs">
-                    {renderGrowthOrAverage(growthOrAverage.orders, "orders")}
+                    {renderGrowthOrAverage(growth.orders, "orders")}
                   </div>{" "}
                 </>
               )}
@@ -317,7 +298,7 @@ const formatNumber = (value: number) => {
                     {formatCurrency(totals.expenses)}
                   </div>
                   <div className="text-xs">
-                    {renderGrowthOrAverage(growthOrAverage.expenses, "expenses")} 
+                    {renderGrowthOrAverage(growth.expenses, "expenses")} 
                   </div>{" "}
                 </>
               )}
