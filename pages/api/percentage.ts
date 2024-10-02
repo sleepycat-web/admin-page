@@ -7,7 +7,6 @@ interface ResponseData {
   expenses: number;
 }
 
- 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
@@ -16,11 +15,27 @@ export default async function handler(
     return res.status(405).end();
   }
 
+  console.log("Received request body:", req.body);
+
   try {
     const { startDate, endDate, branch } = req.body;
     const start = new Date(startDate);
     const end = new Date(endDate);
- 
+
+    console.log("Parsed dates:", { start, end });
+
+    const days = Math.ceil(
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    console.log("Calculated days:", days);
+
+    const previousStart = new Date(
+      start.getTime() - days * 24 * 60 * 60 * 1000
+    );
+    const previousEnd = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
+
+    console.log("Previous period:", { previousStart, previousEnd });
+
     const { db } = await connectToDatabase();
 
     const getCollectionNames = (branch: string) => {
@@ -38,6 +53,15 @@ export default async function handler(
       }
     };
 
+    const collections = getCollectionNames(branch);
+    console.log("Collection names for branch:", branch, collections);
+
+    const expenseExcludedCategories = ["UPI Payment"];
+    const revenueAdditionCategories = [
+      "Extra UPI Payment",
+      "Extra Cash Payment",
+    ];
+
     const getTotals = async (
       periodStart: Date,
       periodEnd: Date,
@@ -52,34 +76,68 @@ export default async function handler(
         orders: orderCollection,
         expenses: expenseCollection,
       } of collections) {
-        const [orderResult, expenseResult] = await Promise.all([
-          db
-            .collection(orderCollection)
-            .aggregate([
-              { $match: dateQuery },
-              {
-                $group: {
-                  _id: null,
-                  totalRevenue: { $sum: "$total" },
-                  totalOrders: { $sum: 1 },
+        const [orderResult, expenseResult, additionalRevenueResult] =
+          await Promise.all([
+            db
+              .collection(orderCollection)
+              .aggregate([
+                { $match: dateQuery },
+                {
+                  $group: {
+                    _id: null,
+                    totalRevenue: { $sum: "$total" },
+                    totalOrders: { $sum: 1 },
+                  },
                 },
-              },
-            ])
-            .toArray(),
-          db
-            .collection(expenseCollection)
-            .aggregate([
-              { $match: dateQuery },
-              { $group: { _id: null, totalExpenses: { $sum: "$amount" } } },
-            ])
-            .toArray(),
-        ]);
+              ])
+              .toArray(),
+            db
+              .collection(expenseCollection)
+              .aggregate([
+                {
+                  $match: {
+                    ...dateQuery,
+                    category: {
+                      $nin: [
+                        ...expenseExcludedCategories,
+                        ...revenueAdditionCategories,
+                      ],
+                    },
+                  },
+                },
+                { $group: { _id: null, totalExpenses: { $sum: "$amount" } } },
+              ])
+              .toArray(),
+            db
+              .collection(expenseCollection)
+              .aggregate([
+                {
+                  $match: {
+                    ...dateQuery,
+                    category: { $in: revenueAdditionCategories },
+                  },
+                },
+                {
+                  $group: { _id: null, additionalRevenue: { $sum: "$amount" } },
+                },
+              ])
+              .toArray(),
+          ]);
 
-        totalRevenue += orderResult[0]?.totalRevenue || 0;
+        totalRevenue +=
+          (orderResult[0]?.totalRevenue || 0) +
+          (additionalRevenueResult[0]?.additionalRevenue || 0);
         totalOrders += orderResult[0]?.totalOrders || 0;
         totalExpenses += expenseResult[0]?.totalExpenses || 0;
       }
 
+      console.log("Totals for period:", {
+        periodStart,
+        periodEnd,
+        totalRevenue,
+        totalOrders,
+        totalExpenses,
+      });
       return {
         revenue: totalRevenue,
         orders: totalOrders,
@@ -87,40 +145,41 @@ export default async function handler(
       };
     };
 
-    const collections = getCollectionNames(branch);
+    console.log("Fetching current totals...");
     const currentTotals = await getTotals(start, end, collections);
+    console.log("Current totals:", currentTotals);
 
-    const days = Math.ceil(
-      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+    console.log("Fetching previous totals...");
+    const previousTotals = await getTotals(
+      previousStart,
+      previousEnd,
+      collections
     );
+    console.log("Previous totals:", previousTotals);
 
-    const calculateGrowth = async (
-      current: number,
-      metric: keyof ResponseData
-    ) => {
-      
-        const previousStart = new Date(
-          start.getTime() - (end.getTime() - start.getTime())
-        );
-        const previousTotals = await getTotals(
-          previousStart,
-          start,
-          collections
-        );
-        const previous = previousTotals[metric];
-        if (previous === 0) return current > 0 ? 100 : 0;
-        return ((current - previous) / previous) * 100;
-      // }
+    const calculateGrowth = (current: number, previous: number): number => {
+      console.log("Calculating growth for:", { current, previous });
+      if (previous === 0) {
+        const result = current ;
+        console.log("Previous is zero, result:", result);
+        return result;
+      }
+      const growthRate = ((current - previous) / previous) * 100;
+      const result = growthRate ;
+      console.log("Growth calculation:", { growthRate, result });
+      return result;
     };
 
     const result: ResponseData = {
-      revenue: await calculateGrowth(currentTotals.revenue, "revenue"),
-      orders: await calculateGrowth(currentTotals.orders, "orders"),
-      expenses: await calculateGrowth(
+      revenue: calculateGrowth(currentTotals.revenue, previousTotals.revenue),
+      orders: calculateGrowth(currentTotals.orders, previousTotals.orders),
+      expenses: calculateGrowth(
         currentTotals.expenses,
-        "expenses"
+        previousTotals.expenses
       ),
     };
+
+    console.log("Final result:", result);
 
     res.status(200).json(result);
   } catch (error) {

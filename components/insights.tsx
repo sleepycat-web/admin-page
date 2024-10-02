@@ -108,6 +108,11 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
 
       const percentagesOrAverages: GrowthOrAverage =
         await percentageResponse.json();
+      console.log(
+        "Received growth test data show check data:",
+        percentagesOrAverages
+      );
+
       setGrowthOrAverage(percentagesOrAverages);
       setIsGrowth(dateRange.start > CUTOFF_DATE);
       if (!Array.isArray(data)) {
@@ -206,31 +211,48 @@ const formatNumber = (value: number) => {
   };
 
   // Update the renderGrowthOrAverage function
-  const renderGrowthOrAverage = (
-    value: number,
-    metricName: keyof typeof growthOrAverage
-  ) => {
-    if (isGrowth) {
-      const color = value > 0 ? "text-green-500" : "text-red-500";
-      const Icon = value > 0 ? TrendingUp : TrendingDown;
-      return (
-        <span className={`${color} flex items-center`}>
-          {value.toFixed(2)}%
-          <Icon className="ml-1" />
-        </span>
-      );
-    } else {
-      if (metricName === "orders") {
-        return (
-          <span className="text-neutral-400">Avg: {Math.floor(value)} / day</span>
-        );
-      } else {
-        return (
-          <span className="text-neutral-400">Avg: ₹{value.toFixed(2)} / day</span>
-        );
-      }
-    }
-  };
+ const renderGrowthOrAverage = (
+   value: number,
+   metricName: keyof typeof growthOrAverage
+ ) => {
+   // Log the values being rendered
+   console.log(`Rendering for ${metricName}:`, {
+     isGrowth,
+     value,
+     displayValue: isGrowth
+       ? `${Math.abs(value).toFixed(2)}%`
+       : value.toFixed(2),
+   });
+
+   if (isGrowth) {
+     const isPositive = value > 0;
+     const color = isPositive ? "text-green-500" : "text-red-500";
+     const Icon = isPositive ? TrendingUp : TrendingDown;
+     const displayValue = Math.abs(value).toFixed(2);
+     return (
+       <span className={`${color} flex items-center`}>
+         {displayValue}%
+         <Icon className="ml-1" />
+       </span>
+     );
+   } else {
+     if (metricName === "orders") {
+       return (
+         <span className="text-neutral-400">
+           Avg: {Math.floor(value)} / day
+         </span>
+       );
+     } else {
+       return (
+         <span className="text-neutral-400">
+           Avg: ₹{value.toFixed(2)} / day
+         </span>
+       );
+     }
+   }
+ };
+
+
 
   return (
     <div className="space-y-4">
