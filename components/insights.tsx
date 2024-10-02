@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2,TrendingDown,TrendingUp } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -23,6 +23,13 @@ interface DailyData {
   numberOfOrders: number;
   generalExpenses: number;
 }
+interface GrowthOrAverage {
+  revenue: number;
+  orders: number;
+  expenses: number;
+}
+
+const CUTOFF_DATE = new Date("2024-09-20T00:00:00Z");
 
 interface InsightsComponentProps {
   dateRange: DateRange;
@@ -49,41 +56,60 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     expenses: 0,
     userCount: 0,
     newUserCount: 0,
-  });
+  }); const [isGrowth, setIsGrowth] = useState<boolean>(true);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+ const [growthOrAverage, setGrowthOrAverage] = useState<GrowthOrAverage>({
+   revenue: 0,
+   orders: 0,
+   expenses: 0,
+ });
   const fetchInsightsData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [insightsResponse, userCountResponse] = await Promise.all([
-        fetch("/api/insights", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            startDate: dateRange.start.toISOString(),
-            endDate: dateRange.end.toISOString(),
-            branch: selectedBranch,
+      const [insightsResponse, userCountResponse, percentageResponse] =
+        await Promise.all([
+          fetch("/api/insights", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              startDate: dateRange.start.toISOString(),
+              endDate: dateRange.end.toISOString(),
+              branch: selectedBranch,
+            }),
           }),
-        }),
-        fetch("/api/usercount", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            startDate: dateRange.start.toISOString(),
-            endDate: dateRange.end.toISOString(),
+          fetch("/api/usercount", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              startDate: dateRange.start.toISOString(),
+              endDate: dateRange.end.toISOString(),
+            }),
           }),
-        }),
-      ]);
+          fetch("/api/percentage", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              startDate: dateRange.start.toISOString(),
+              endDate: dateRange.end.toISOString(),
+              branch: selectedBranch,
+            }),
+          }),
+        ]);
 
       const data: DailyData[] = await insightsResponse.json();
       const { totalCount: userCount, newUserCount } =
         await userCountResponse.json();
 
+      const percentagesOrAverages: GrowthOrAverage =
+        await percentageResponse.json();
+      setGrowthOrAverage(percentagesOrAverages);
+      setIsGrowth(dateRange.start > CUTOFF_DATE);
       if (!Array.isArray(data)) {
         throw new Error("Received data is not an array");
       }
@@ -101,7 +127,6 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
 
       setDailyData(sortedData);
 
-      // Calculate totals
       const newTotals = sortedData.reduce(
         (acc: Totals, day: DailyData) => ({
           revenue: acc.revenue + day.revenue,
@@ -118,7 +143,22 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
           newUserCount: newUserCount,
         }
       );
+
+      // Calculate the number of days since cutoff
+      const daysSinceCutoff = Math.ceil(
+        (dateRange.end.getTime() - CUTOFF_DATE.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      // Calculate daily averages
+      const averages = {
+        revenue: newTotals.revenue / daysSinceCutoff,
+        orders: newTotals.orders / daysSinceCutoff,
+        expenses: newTotals.expenses / daysSinceCutoff,
+      };
+
       setTotals(newTotals);
+      setGrowthOrAverage(averages);
       setError(null);
     } catch (error) {
       console.error("Error fetching insights data:", error);
@@ -127,6 +167,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
       setIsLoading(false);
     }
   }, [dateRange, selectedBranch]);
+
   useEffect(() => {
     fetchInsightsData();
   }, [fetchInsightsData]);
@@ -146,6 +187,49 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
+  };
+const formatNumber = (value: number) => {
+  return new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+  const roundDownToInteger = (num: number) => Math.floor(num);
+
+  const calculateDaysForAverage = (startDate: Date, endDate: Date) => {
+    const effectiveStartDate =
+      startDate < CUTOFF_DATE ? CUTOFF_DATE : startDate;
+    const daysDiff = Math.ceil(
+      (endDate.getTime() - effectiveStartDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return Math.max(1, daysDiff); // Ensure we don't divide by zero
+  };
+
+  // Update the renderGrowthOrAverage function
+  const renderGrowthOrAverage = (
+    value: number,
+    metricName: keyof typeof growthOrAverage
+  ) => {
+    if (isGrowth) {
+      const color = value > 0 ? "text-green-500" : "text-red-500";
+      const Icon = value > 0 ? TrendingUp : TrendingDown;
+      return (
+        <span className={`${color} flex items-center`}>
+          {value.toFixed(2)}%
+          <Icon className="ml-1" />
+        </span>
+      );
+    } else {
+      if (metricName === "orders") {
+        return (
+          <span className="text-neutral-400">Avg: {Math.floor(value)} / day</span>
+        );
+      } else {
+        return (
+          <span className="text-neutral-400">Avg: ₹{value.toFixed(2)} / day</span>
+        );
+      }
+    }
   };
 
   return (
@@ -169,7 +253,9 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
                     {formatCurrency(totals.revenue)}
                   </div>
 
-                  <div className="text-xs">Here will be %</div>
+                  <div className="text-xs">
+                    {renderGrowthOrAverage(growthOrAverage.revenue, "revenue")}
+                  </div>
                 </>
               )}
             </div>
@@ -186,8 +272,9 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
               ) : (
                 <>
                   <div className="text-2xl font-bold"> {totals.orders}</div>
-
-                  <div className="text-xs">Here will be %</div>
+                  <div className="text-xs">
+                    {renderGrowthOrAverage(growthOrAverage.orders, "orders")}
+                  </div>{" "}
                 </>
               )}
             </div>
@@ -207,8 +294,9 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
                     {" "}
                     {formatCurrency(totals.expenses)}
                   </div>
-
-                  <div className="text-xs">Here will be %</div>
+                  <div className="text-xs">
+                    {renderGrowthOrAverage(growthOrAverage.expenses, "expenses")} 
+                  </div>{" "}
                 </>
               )}
             </div>
@@ -225,7 +313,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
               <div>
                 <div className="text-2xl font-bold">{totals.userCount}</div>
                 <div>
-                  <div className="text-xs">
+                  <div className="text-xs text-neutral-400">
                     {totals.newUserCount} new sign-ups in the last time period
                   </div>
                 </div>
