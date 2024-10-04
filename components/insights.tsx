@@ -335,7 +335,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
               <Loader2 className="animate-spin" />
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer className="py-2" width="100%" height={400}>
               <LineChart data={dailyData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tickFormatter={formatDate} />
