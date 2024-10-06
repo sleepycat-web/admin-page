@@ -18,7 +18,8 @@ import {
   SelectSeparator,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Expense {
   _id: string;
@@ -49,6 +50,9 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showAll, setShowAll] = useState(false);
+  const expensesPerPage = 30;
 
   const categories = [
     "General",
@@ -109,16 +113,18 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
       setIsLoading(false);
     }
   };
- const filterExpenses = () => {
-   const filtered = expenses.filter((expense) =>
-     Object.values(expense).some((value) => {
-       const stringValue = value.toString().toLowerCase();
-       const searchTerms = searchTerm.toLowerCase().split(" ");
-       return searchTerms.every((term) => stringValue.includes(term));
-     })
-   );
-   setFilteredExpenses(filtered);
- };
+
+  const filterExpenses = () => {
+    const filtered = expenses.filter((expense) =>
+      Object.values(expense).some((value) => {
+        const stringValue = value.toString().toLowerCase();
+        const searchTerms = searchTerm.toLowerCase().split(" ");
+        return searchTerms.every((term) => stringValue.includes(term));
+      })
+    );
+    setFilteredExpenses(filtered);
+    setCurrentPage(1);
+  };
 
   const handleSort = (column: keyof Expense) => {
     if (column === sortColumn) {
@@ -154,6 +160,103 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
     return format(offsetDate, "MMMM d yyyy 'at' h:mm a");
   };
 
+  const indexOfLastExpense = showAll
+    ? sortedExpenses.length
+    : currentPage * expensesPerPage;
+  const indexOfFirstExpense = showAll
+    ? 0
+    : indexOfLastExpense - expensesPerPage;
+  const currentExpenses = sortedExpenses.slice(
+    indexOfFirstExpense,
+    indexOfLastExpense
+  );
+
+  const totalPages = Math.ceil(sortedExpenses.length / expensesPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const toggleShowAll = () => {
+    setShowAll(!showAll);
+    setCurrentPage(1);
+  };
+
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const maxVisiblePages = 5;
+
+    buttons.push(
+      <Button
+        key="prev"
+        onClick={() => paginate(currentPage - 1)}
+        disabled={currentPage === 1}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+    );
+
+    for (let i = 1; i <= Math.min(maxVisiblePages, totalPages); i++) {
+      buttons.push(
+        <Button
+          key={i}
+          onClick={() => paginate(i)}
+          variant={currentPage === i ? "default" : "outline"}
+        >
+          {i}
+        </Button>
+      );
+    }
+
+    if (totalPages > maxVisiblePages) {
+      buttons.push(<span key="ellipsis">...</span>);
+
+      if (currentPage > maxVisiblePages && currentPage < totalPages - 1) {
+        buttons.push(
+          <Button
+            key={currentPage}
+            onClick={() => paginate(currentPage)}
+            variant="default"
+          >
+            {currentPage}
+          </Button>
+        );
+      }
+
+      if (totalPages - 1 > maxVisiblePages) {
+        buttons.push(
+          <Button
+            key={totalPages - 1}
+            onClick={() => paginate(totalPages - 1)}
+            variant={currentPage === totalPages - 1 ? "default" : "outline"}
+          >
+            {totalPages - 1}
+          </Button>
+        );
+      }
+
+      buttons.push(
+        <Button
+          key={totalPages}
+          onClick={() => paginate(totalPages)}
+          variant={currentPage === totalPages ? "default" : "outline"}
+        >
+          {totalPages}
+        </Button>
+      );
+    }
+
+    buttons.push(
+      <Button
+        key="next"
+        onClick={() => paginate(currentPage + 1)}
+        disabled={currentPage === totalPages}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    );
+
+    return buttons;
+  };
+
   return (
     <>
       <div className="mb-4">
@@ -164,19 +267,24 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full max-w-sm mb-2"
         />
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select category" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((cat, index) => (
-              <React.Fragment key={cat}>
-                <SelectItem value={cat}>{cat}</SelectItem>
-                {index === 2 && <SelectSeparator />}
-              </React.Fragment>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex justify-between items-center">
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat, index) => (
+                <React.Fragment key={cat}>
+                  <SelectItem value={cat}>{cat}</SelectItem>
+                  {index === 2 && <SelectSeparator />}
+                </React.Fragment>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={toggleShowAll} variant="outline">
+            {showAll ? "Show Paginated" : "Show All"}
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -224,7 +332,7 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedExpenses.map((expense) => (
+              {currentExpenses.map((expense) => (
                 <TableRow key={expense._id}>
                   <TableCell>{expense.category}</TableCell>
                   <TableCell>{expense.amount}</TableCell>
@@ -239,7 +347,12 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
               ))}
             </TableBody>
           </Table>
-          <p className="text-xl font-bold">Total: ₹{total.toFixed(2)}</p>
+          <div className="flex justify-between items-center mt-4">
+            <p className="text-xl font-bold">Total: ₹{total.toFixed(2)}</p>
+            {!showAll && (
+              <div className="flex space-x-2">{renderPaginationButtons()}</div>
+            )}
+          </div>
         </div>
       )}
     </>
