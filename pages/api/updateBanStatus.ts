@@ -1,5 +1,17 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { connectToDatabase } from "@/lib/mongodb";
+import { Document, UpdateFilter } from "mongodb";
+
+// Define the structure of your user document
+interface UserDocument extends Document {
+  phoneNumber: string;
+  banStatus: boolean;
+  banDate?: Date;
+  banHistory?: Array<{
+    date: Date;
+    reason: string;
+  }>;
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -7,20 +19,28 @@ export default async function handler(
 ) {
   if (req.method === "POST") {
     try {
-      const { phoneNumber, newBanStatus } = req.body;
+      const { phoneNumber, newBanStatus, banReason } = req.body;
       const { db } = await connectToDatabase();
 
-      let updateOperation;
+      const currentDate = new Date();
+
+      let updateOperation: UpdateFilter<UserDocument>;
+
       if (newBanStatus) {
-        // If banning, set banStatus to true and update banDate
         updateOperation = {
           $set: {
             banStatus: true,
-            banDate: new Date(),
+            banDate: currentDate,
+          },
+          $push: {
+            banHistory: {
+              date: currentDate,
+              reason: banReason,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any, 
           },
         };
       } else {
-        // If unbanning, set banStatus to false and remove banDate
         updateOperation = {
           $set: { banStatus: false },
           $unset: { banDate: "" },
@@ -28,18 +48,21 @@ export default async function handler(
       }
 
       const result = await db
-        .collection("UserData")
-        .updateOne({ phoneNumber }, updateOperation);
+        .collection<UserDocument>("UserData")
+        .findOneAndUpdate({ phoneNumber }, updateOperation, {
+          returnDocument: "after",
+        });
 
-      if (result.modifiedCount === 1) {
-        res.status(200).json({ success: true });
+      if (result) {
+        res.status(200).json({
+          success: true,
+          banHistory: result.banHistory || [],
+        });
       } else {
-        res
-          .status(404)
-          .json({
-            success: false,
-            error: "User not found or ban status not changed",
-          });
+        res.status(404).json({
+          success: false,
+          error: "User not found or ban status not changed",
+        });
       }
     } catch (error) {
       res

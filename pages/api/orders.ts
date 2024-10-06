@@ -23,42 +23,56 @@ export default async function handler(
         createdAt: { $gte: startDateTime, $lt: endDateTime },
       };
 
-      // Determine the collection name based on the branch
-      let collectionName = "OrderSevoke";
-      if (branch !== "all") {
-        collectionName = `Order${
-          branch.charAt(0).toUpperCase() + branch.slice(1)
-        }`;
+      // Determine the collections to query based on the branch
+      let collections = [];
+      if (branch === "all") {
+        collections = ["OrderSevoke", "OrderDagapur"];
+      } else {
+        collections = [
+          `Order${branch.charAt(0).toUpperCase() + branch.slice(1)}`,
+        ];
       }
 
-      const orders = await db
-        .collection(collectionName)
-        .aggregate([
-          { $match: query },
-          {
-            $project: {
-              _id: 1,
-              customerName: 1,
-              phoneNumber: 1,
-              total: {
-                $cond: {
-                  if: {
-                    $and: [
-                      { $isNumber: "$total" },
-                      { $isNumber: "$tableDeliveryCharge" },
-                    ],
+      // Function to perform aggregation on a single collection
+      const aggregateCollection = async (collectionName: string) => {
+        return db
+          .collection(collectionName)
+          .aggregate([
+            { $match: query },
+            {
+              $project: {
+                _id: 1,
+                customerName: 1,
+                phoneNumber: 1,
+                total: {
+                  $cond: {
+                    if: {
+                      $and: [
+                        { $isNumber: "$total" },
+                        { $isNumber: "$tableDeliveryCharge" },
+                      ],
+                    },
+                    then: { $subtract: ["$total", "$tableDeliveryCharge"] },
+                    else: "$total",
                   },
-                  then: { $subtract: ["$total", "$tableDeliveryCharge"] },
-                  else: "$total",
                 },
+                createdAt: 1,
+                status: 1,
+                items: 1,
+                appliedPromo: 1,
+                selectedLocation: 1,
               },
-              createdAt: 1,
-              status: 1,
-              items: 1,
             },
-          },
-        ])
-        .toArray();
+          ])
+          .toArray();
+      };
+
+      // Perform aggregation on all required collections
+      const ordersPromises = collections.map(aggregateCollection);
+      const ordersArrays = await Promise.all(ordersPromises);
+
+      // Flatten the array of arrays into a single array of orders
+      const orders = ordersArrays.flat();
 
       res.status(200).json(orders);
     } catch (error) {

@@ -54,7 +54,7 @@ export default async function handler(
 
     const collections = getCollectionNames(branch);
 
-    const expenseExcludedCategories = ["UPI Payment"];
+    const expenseExcludedCategories = ["UPI Payment","Drawings",];
     const revenueAdditionCategories = [
       "Extra UPI Payment",
       "Extra Cash Payment",

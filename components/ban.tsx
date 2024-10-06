@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface UserData {
   _id: string;
@@ -16,6 +17,7 @@ interface UserData {
   name: string;
   banStatus: boolean;
   banDate?: string;
+  banHistory?: Array<{ date: string; reason: string }>;
 }
 
 const BanComp: React.FC = () => {
@@ -24,6 +26,7 @@ const BanComp: React.FC = () => {
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [banReason, setBanReason] = useState<string>("");
 
   const handlePhoneNumberChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "");
@@ -79,6 +82,7 @@ const BanComp: React.FC = () => {
           body: JSON.stringify({
             phoneNumber: userData.phoneNumber,
             newBanStatus: newBanStatus,
+            banReason: newBanStatus ? banReason : undefined,
           }),
         });
         const result = await response.json();
@@ -87,7 +91,9 @@ const BanComp: React.FC = () => {
             ...userData,
             banStatus: newBanStatus,
             banDate: newBanStatus ? new Date().toISOString() : undefined,
+            banHistory: result.banHistory,
           });
+          setBanReason("");
         } else {
           throw new Error("Failed to update ban status");
         }
@@ -185,12 +191,38 @@ const BanComp: React.FC = () => {
                   </Label>
                 </div>
               )}
+              {userData.banHistory && userData.banHistory.length > 0 && (
+                <div>
+                  <Label className="font-semibold">Ban History</Label>
+                  <ul className="  mt-2">
+                    {userData.banHistory.map((entry, index) => (
+                      <li key={index}>
+                        {formatDate(entry.date)} - {entry.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
+            {!userData.banStatus && (
+              <div className="">
+                <Label htmlFor="banReason" className="font-semibold">
+                  Reason for Ban
+                </Label>
+                <Textarea
+                  id="banReason"
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  placeholder="Enter reason for banning the user"
+                  className="mt-1"
+                />
+              </div>
+            )}
             <DialogFooter>
               <Button
                 variant="secondary"
                 onClick={handleBanStatusChange}
-                disabled={isLoading}
+                disabled={isLoading || (!userData.banStatus && !banReason)}
               >
                 {isLoading
                   ? "Updating..."

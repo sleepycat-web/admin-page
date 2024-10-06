@@ -77,7 +77,7 @@ export default async function handler(
       const expenseQuery = {
         createdAt: { $gte: startDateTime, $lt: endDateTime },
         category: {
-          $nin: ["UPI Payment", "Extra Cash Payment", "Extra UPI Payment"],
+          $nin: ["UPI Payment", "Extra Cash Payment", "Extra UPI Payment", "Drawings"],
         },
       };
 

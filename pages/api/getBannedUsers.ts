@@ -12,7 +12,13 @@ export default async function handler(
       const bannedUsers = await db
         .collection("UserData")
         .find({ banStatus: true })
-        .project({ name: 1, phoneNumber: 1, banDate: 1, _id: 0 })
+        .project({
+          name: 1,
+          phoneNumber: 1,
+          banDate: 1,
+          banHistory: 1,
+          _id: 0,
+        })
         .toArray();
 
       res.status(200).json(bannedUsers);

@@ -2,6 +2,7 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CaretSortIcon } from "@radix-ui/react-icons";
+import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -22,12 +23,73 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2 } from "lucide-react";
 
-type BannedUser = {
+interface BanHistoryEntry {
+  date: string;
+  reason: string;
+}
+
+interface BannedUser {
   name: string;
   phoneNumber: string;
   banDate: string;
+  banHistory: BanHistoryEntry[];
+}
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date
+    .toLocaleString("en-US", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+    .replace(",", " at")
+    .replace("AM", "am")
+    .replace("PM", "pm");
+};
+
+const BanHistoryCell = ({ history }: { history: BanHistoryEntry[] }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  if (!history || history.length === 0) {
+    return <div className="text-sm text-gray-500">No history</div>;
+  }
+
+  return (
+    <div className="w-full">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full"
+      >
+        <span>
+          {history.length} {history.length === 1 ? "entry" : "entries"}
+        </span>
+        {isOpen ? (
+          <ChevronUp className="h-4 w-4" />
+        ) : (
+          <ChevronDown className="h-4 w-4" />
+        )}
+      </Button>
+      {isOpen && (
+        <div className="mt-2 space-y-2">
+          {history.map((entry, index) => (
+            <div key={index} className="rounded-md bg-muted p-2 text-sm">
+              <div className="font-medium">{formatDate(entry.date)}</div>
+              <div className="text-muted-foreground">
+                Reason: {entry.reason}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const columns: ColumnDef<BannedUser>[] = [
@@ -38,19 +100,20 @@ const columns: ColumnDef<BannedUser>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="w-full justify-start"
         >
           Name
           <CaretSortIcon className="ml-2 h-4 w-4" />
         </Button>
       );
     },
-    cell: ({ row }) => <div className="">{row.getValue("name")}</div>,
+    cell: ({ row }) => <div className="w-full">{row.getValue("name")}</div>,
   },
   {
     accessorKey: "phoneNumber",
     header: "Phone Number",
     cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("phoneNumber")}</div>
+      <div className="w-full">{row.getValue("phoneNumber")}</div>
     ),
   },
   {
@@ -60,6 +123,7 @@ const columns: ColumnDef<BannedUser>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="w-full justify-start"
         >
           Date Banned
           <CaretSortIcon className="ml-2 h-4 w-4" />
@@ -67,22 +131,22 @@ const columns: ColumnDef<BannedUser>[] = [
       );
     },
     cell: ({ row }) => {
-      const date = new Date(row.getValue("banDate"));
-      const options: Intl.DateTimeFormatOptions = {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      };
       return (
-        <div>{date.toLocaleString("en-US", options).replace(",", "")}</div>
+        <div className="w-full">{formatDate(row.getValue("banDate"))}</div>
       );
     },
   },
+  {
+    id: "banHistory",
+    header: "Ban History",
+    cell: ({ row }) => (
+      <div className="md:w-[300px]">
+        <BanHistoryCell history={row.original.banHistory} />
+      </div>
+    ),
+  },
 ];
-
-export function DataTableDemo() {
+function DataTableDemo() {
   const [data, setData] = React.useState<BannedUser[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -98,6 +162,9 @@ export function DataTableDemo() {
       try {
         setLoading(true);
         const response = await fetch("/api/getBannedUsers");
+        if (!response.ok) {
+          throw new Error("Failed to fetch");
+        }
         const bannedUsers = await response.json();
         setData(bannedUsers);
       } catch (error) {
@@ -146,18 +213,16 @@ export function DataTableDemo() {
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -204,13 +269,11 @@ export function DataTableDemo() {
   );
 }
 
-const BanDataComp = () => {
+export default function BanDataComp() {
   return (
-    <div>
+    <div className="space-y-4">
       <h1 className="text-lg font-semibold md:block hidden">Banned Users</h1>
       <DataTableDemo />
     </div>
   );
-};
-
-export default BanDataComp;
+}
