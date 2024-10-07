@@ -207,7 +207,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
     indexOfFirstOrder,
     indexOfLastOrder
   );
-
+ 
   const totalPages = Math.ceil(groupedOrders.length / ordersPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
@@ -289,50 +289,72 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
     return buttons;
   };
 
-  const renderOrderItems = (order: Order) => (
-    <div className="space-y-4">
-      {order.items.map((item, index) => (
-        <div key={index} className="border-b pb-2">
-          <div className="flex justify-between items-start">
-            <div className="font-medium">{item.item.name}</div>
-            <div className="text-right">
-              <div>Qty: {item.quantity}</div>
-              <div>₹{item.totalPrice.toFixed(2)}</div>
-            </div>
-          </div>
-          <div className="text-sm grid">
-            {Object.entries(item.selectedOptions).map(
-              ([optionName, optionValues]) => (
-                <div key={optionName}>
-                  <span className="font-semibold">{optionName}:</span>{" "}
-                  {optionValues.join(", ")}
+  const renderOrderItems = (groupedOrder: GroupedOrder) => {
+    const allOrders = [groupedOrder, ...groupedOrder.subOrders];
+    const groupTotal = allOrders.reduce(
+      (sum, order) => sum + (order.total || 0),
+      0
+    );
+    const hasMultipleOrders = allOrders.length > 1;
+
+    return (
+      <div className="space-y-4">
+        {allOrders.map((order, index) => (
+          <div key={index} className="mb-4 pb-4 border-b last:border-b-0">
+            {hasMultipleOrders && (
+              <>
+                <div className="font-semibold">Order {index + 1}</div>
+                <div className="text-sm">
+                  Time: {format(new Date(order.createdAt), "h:mm a")}
                 </div>
-              )
+              </>
             )}
+            {order.items.map((item, itemIndex) => (
+              <div key={itemIndex} className="border-b mb-2 mt-2 pb-2">
+                <div className="flex justify-between items-start">
+                  <div className="font-medium">{item.item.name}</div>
+                  <div className="text-right">
+                    <div>Qty: {item.quantity}</div>
+                    <div>₹{item.totalPrice.toFixed(2)}</div>
+                  </div>
+                </div>
+                <div className="text-sm grid">
+                  {Object.entries(item.selectedOptions).map(
+                    ([optionName, optionValues]) => (
+                      <div key={optionName}>
+                        <span className="font-semibold">{optionName}:</span>{" "}
+                        {optionValues.join(", ")}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            ))}
+            <div className="flex flex-col items-end mt-2">
+              {order.appliedPromo && (
+                <div className="text-green-600">
+                  Promo Applied: {order.appliedPromo.code} (
+                  {order.appliedPromo.percentage}% off)
+                </div>
+              )}
+              <div className="font-semibold text-base">
+                {hasMultipleOrders ? "Subtotal" : "Total:"} ₹
+                {order.total !== null ? order.total.toFixed(2) : "N/A"}
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
-      <div className="flex flex-col items-end">
-        {order.appliedPromo && (
-          <>
-            <div className="font-semibold">
-              Subtotal: ₹
-              {order.items
-                .reduce((sum, item) => sum + item.totalPrice, 0)
-                .toFixed(2)}
+        ))}
+        {hasMultipleOrders && (
+          <div className="flex justify-end mt-4">
+            <div className="font-bold text-lg">
+              Total: ₹{groupTotal.toFixed(2)}
             </div>
-            <div className="text-green-600">
-              Promo Applied: {order.appliedPromo.code} (
-              {order.appliedPromo.percentage}% off)
-            </div>
-          </>
+          </div>
         )}
-        <div className="font-semibold text-lg mt-2">
-          Total: ₹{order.total !== null ? order.total.toFixed(2) : "N/A"}
-        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
 
   return (
     <div className="space-y-4">
@@ -444,7 +466,10 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
                     ).toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    {format(new Date(groupedOrder.createdAt), "MMMM d yyyy")}
+                    {format(
+                      new Date(groupedOrder.createdAt),
+                      "MMMM d yyyy h:mm a"
+                    )}
                   </TableCell>
                   <TableCell>{groupedOrder.status}</TableCell>
                   {showBranchColumn && (
@@ -455,23 +480,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
                   <TableRow>
                     <TableCell colSpan={showBranchColumn ? 7 : 6}>
                       <div className="p-4">
-                        {[groupedOrder, ...groupedOrder.subOrders].map(
-                          (order, index) => (
-                            <div
-                              key={index}
-                              className="mb-4 pb-4 border-b last:border-b-0"
-                            >
-                              <div className="font-semibold">
-                                Order {index + 1}
-                              </div>
-                              <div className="text-sm">
-                                Time:{" "}
-                                {format(new Date(order.createdAt), "h:mm a")}
-                              </div>
-                              {renderOrderItems(order)}
-                            </div>
-                          )
-                        )}
+                        {renderOrderItems(groupedOrder)}
                       </div>
                     </TableCell>
                   </TableRow>

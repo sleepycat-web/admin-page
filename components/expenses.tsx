@@ -44,7 +44,7 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
 }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
-  const [total, setTotal] = useState(0);
+  // const [total, setTotal] = useState(0);
   const [category, setCategory] = useState("General");
   const [sortColumn, setSortColumn] = useState<keyof Expense>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -104,12 +104,10 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
       });
       const data = await response.json();
       setExpenses(data.expenses || []);
-      setTotal(data.total || 0);
-    } catch (error) {
+     } catch (error) {
       console.error("Error fetching expenses:", error);
       setExpenses([]);
-      setTotal(0);
-    } finally {
+     } finally {
       setIsLoading(false);
     }
   };
@@ -170,7 +168,9 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
     indexOfFirstExpense,
     indexOfLastExpense
   );
-
+const calculateDisplayedTotal = () => {
+  return currentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+};
   const totalPages = Math.ceil(sortedExpenses.length / expensesPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
@@ -348,7 +348,9 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
             </TableBody>
           </Table>
           <div className="flex justify-between items-center mt-4">
-            <p className="text-xl font-bold">Total: ₹{total.toFixed(2)}</p>
+            <p className="text-xl font-bold">
+              Total: ₹{calculateDisplayedTotal().toFixed(2)}
+            </p>{" "}
             {!showAll && (
               <div className="flex space-x-2">{renderPaginationButtons()}</div>
             )}
