@@ -6,6 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -42,37 +43,97 @@ const handleDateReset = () => {
   setCustomDateRange(undefined);
 };
 
-  const handleDateRangeChange = (value: string) => {
-    setSelectedDateRange(value);
-    if (value === "custom") {
-      setIsCalendarOpen(false);
-    } else {
-      setIsCalendarOpen(false);
-      const end = new Date();
-      let start = new Date();
+const handleDateRangeChange = (value: string) => {
+  setSelectedDateRange(value);
+  const now = new Date();
+  let start = new Date();
+  let end = new Date();
 
-      switch (value) {
-        case "1day":
-          start.setDate(end.getDate() - 1);
-          break;
-        case "1week":
-          start.setDate(end.getDate() - 7);
-          break;
-        case "1month":
-          start.setMonth(end.getMonth() - 1);
-          break;
-        case "1year":
-          start.setFullYear(end.getFullYear() - 1);
-          break;
-        case "allTime":
-          start = new Date(0);
-          break;
-      }
+  switch (value) {
+    case "today":
+      // Today: 00:00 AM to 11:59 PM
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
 
-      setDateRange({ start, end });
-      setCustomDateRange(undefined);
-    }
-  };
+    case "yesterday":
+      // Yesterday: 00:00 AM to 11:59 PM
+      start = new Date(now);
+      start.setDate(start.getDate() - 1);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(start);
+      end.setHours(23, 59, 59, 999);
+      break;
+
+    case "thisWeek":
+      // This week: Today - 7 to Today
+      start = new Date(now);
+      start.setDate(start.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+
+    case "previousWeek":
+      // Previous week: Today - 14 to Today - 7
+      end = new Date(now);
+      end.setDate(end.getDate() - 7);
+      end.setHours(23, 59, 59, 999);
+      start = new Date(now);
+      start.setDate(start.getDate() - 14);
+      start.setHours(0, 0, 0, 0);
+      break;
+
+    case "thisMonth":
+      // This month: Today - 30 to Today
+      start = new Date(now);
+      start.setDate(start.getDate() - 30);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+
+    case "previousMonth":
+      // Previous month: Today - 60 to Today - 30
+      end = new Date(now);
+      end.setDate(end.getDate() - 30);
+      end.setHours(23, 59, 59, 999);
+      start = new Date(now);
+      start.setDate(start.getDate() - 60);
+      start.setHours(0, 0, 0, 0);
+      break;
+
+    case "thisYear":
+      // This year: Today - 365 to Today
+      start = new Date(now);
+      start.setDate(start.getDate() - 365);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+
+    case "previousYear":
+      // Previous year: Today - 730 to Today - 365
+      end = new Date(now);
+      end.setDate(end.getDate() - 365);
+      end.setHours(23, 59, 59, 999);
+      start = new Date(now);
+      start.setDate(start.getDate() - 730);
+      start.setHours(0, 0, 0, 0);
+      break;
+
+    case "allTime":
+      start = new Date(0); // Beginning of time (1970)
+      end = new Date();
+      end.setHours(23, 59, 59, 999);
+      break;
+
+    case "custom":
+      setIsCalendarOpen(true);
+      return; // Don't update dateRange for custom selection
+  }
+
+  setDateRange({ start, end });
+  setCustomDateRange(undefined);
+  setIsCalendarOpen(false);
+};
 
   const handleBranchChange = (value: string) => {
     setSelectedBranch(value);
@@ -151,10 +212,18 @@ const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
               <SelectValue placeholder="Select date range" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1day">1 Day</SelectItem>
-              <SelectItem value="1week">1 Week</SelectItem>
-              <SelectItem value="1month">1 Month</SelectItem>
-              <SelectItem value="1year">1 Year</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="yesterday">Yesterday</SelectItem>
+              <SelectSeparator />
+              <SelectItem value="thisWeek">This Week</SelectItem>
+              <SelectItem value="previousWeek">Previous Week</SelectItem>
+              <SelectSeparator />
+              <SelectItem value="thisMonth">This Month</SelectItem>
+              <SelectItem value="previousMonth">Previous Month</SelectItem>
+              <SelectSeparator />
+              <SelectItem value="thisYear">This Year</SelectItem>
+              <SelectItem value="previousYear">Previous Year</SelectItem>
+              <SelectSeparator />
               <SelectItem value="allTime">All Time</SelectItem>
               <SelectItem value="custom">Custom Range</SelectItem>
             </SelectContent>
@@ -205,8 +274,6 @@ const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
           )}
         </div>
       </div>
-
-     
 
       <Select onValueChange={handleBranchChange} value={selectedBranch}>
         <SelectTrigger className="w-[180px]">

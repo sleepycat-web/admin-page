@@ -33,6 +33,10 @@ interface Order {
   selectedLocation: string;
 }
 
+interface GroupedOrder extends Order {
+  subOrders: Order[];
+}
+
 interface AppliedPromo {
   code: string;
   percentage: number;
@@ -51,7 +55,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
   selectedBranch,
 }) => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [groupedOrders, setGroupedOrders] = useState<GroupedOrder[]>([]);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Order;
     direction: "asc" | "desc";
@@ -65,8 +69,14 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
   const ordersPerPage = 30;
 
   const calculateTotalOrdersSum = () => {
-    const sum = filteredOrders.reduce(
-      (acc, order) => acc + (order.total || 0),
+    const sum = groupedOrders.reduce(
+      (acc, order) =>
+        acc +
+        (order.total || 0) +
+        order.subOrders.reduce(
+          (sum, subOrder) => sum + (subOrder.total || 0),
+          0
+        ),
       0
     );
     setTotalOrdersSum(sum);
@@ -74,7 +84,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
 
   useEffect(() => {
     calculateTotalOrdersSum();
-  }, [filteredOrders]);
+  }, [groupedOrders]);
 
   useEffect(() => {
     fetchOrders();
@@ -127,7 +137,26 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
       );
     });
 
-    filtered.sort((a, b) => {
+    // Group orders by customer name and date
+    const grouped = filtered.reduce<Record<string, GroupedOrder>>(
+      (acc, order) => {
+        const key = `${order.customerName}_${format(
+          new Date(order.createdAt),
+          "yyyy-MM-dd"
+        )}`;
+        if (!acc[key]) {
+          acc[key] = { ...order, subOrders: [] };
+        } else {
+          acc[key].subOrders.push(order);
+        }
+        return acc;
+      },
+      {}
+    );
+
+    const groupedArray = Object.values(grouped);
+
+    groupedArray.sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
 
@@ -139,7 +168,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
       return 0;
     });
 
-    setFilteredOrders(filtered);
+    setGroupedOrders(groupedArray);
     setCurrentPage(1);
   };
 
@@ -151,20 +180,6 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
       direction = "desc";
     }
     setSortConfig({ key, direction });
-
-    setFilteredOrders(
-      [...filteredOrders].sort((a, b) => {
-        const aValue = a[key];
-        const bValue = b[key];
-
-        if (aValue === null || aValue === undefined) return 1;
-        if (bValue === null || bValue === undefined) return -1;
-
-        if (aValue < bValue) return direction === "asc" ? -1 : 1;
-        if (aValue > bValue) return direction === "asc" ? 1 : -1;
-        return 0;
-      })
-    );
   };
 
   const toggleOrderExpansion = (orderId: string) => {
@@ -185,15 +200,15 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
   };
 
   const indexOfLastOrder = showAll
-    ? filteredOrders.length
+    ? groupedOrders.length
     : currentPage * ordersPerPage;
   const indexOfFirstOrder = showAll ? 0 : indexOfLastOrder - ordersPerPage;
-  const currentOrders = filteredOrders.slice(
+  const currentGroupedOrders = groupedOrders.slice(
     indexOfFirstOrder,
     indexOfLastOrder
   );
 
-  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const totalPages = Math.ceil(groupedOrders.length / ordersPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
@@ -223,43 +238,43 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
       );
     }
 
-   if (totalPages > maxVisiblePages) {
-     buttons.push(<span key="ellipsis">...</span>);
+    if (totalPages > maxVisiblePages) {
+      buttons.push(<span key="ellipsis">...</span>);
 
-     if (currentPage > maxVisiblePages && currentPage < totalPages - 1) {
-       buttons.push(
-         <Button
-           key={currentPage}
-           onClick={() => paginate(currentPage)}
-           variant="default"
-         >
-           {currentPage}
-         </Button>
-       );
-     }
+      if (currentPage > maxVisiblePages && currentPage < totalPages - 1) {
+        buttons.push(
+          <Button
+            key={currentPage}
+            onClick={() => paginate(currentPage)}
+            variant="default"
+          >
+            {currentPage}
+          </Button>
+        );
+      }
 
-     if (totalPages - 1 > maxVisiblePages) {
-       buttons.push(
-         <Button
-           key={totalPages - 1}
-           onClick={() => paginate(totalPages - 1)}
-           variant={currentPage === totalPages - 1 ? "default" : "outline"}
-         >
-           {totalPages - 1}
-         </Button>
-       );
-     }
+      if (totalPages - 1 > maxVisiblePages) {
+        buttons.push(
+          <Button
+            key={totalPages - 1}
+            onClick={() => paginate(totalPages - 1)}
+            variant={currentPage === totalPages - 1 ? "default" : "outline"}
+          >
+            {totalPages - 1}
+          </Button>
+        );
+      }
 
-     buttons.push(
-       <Button
-         key={totalPages}
-         onClick={() => paginate(totalPages)}
-         variant={currentPage === totalPages ? "default" : "outline"}
-       >
-         {totalPages}
-       </Button>
-     );
-   }
+      buttons.push(
+        <Button
+          key={totalPages}
+          onClick={() => paginate(totalPages)}
+          variant={currentPage === totalPages ? "default" : "outline"}
+        >
+          {totalPages}
+        </Button>
+      );
+    }
 
     buttons.push(
       <Button
@@ -273,6 +288,51 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
 
     return buttons;
   };
+
+  const renderOrderItems = (order: Order) => (
+    <div className="space-y-4">
+      {order.items.map((item, index) => (
+        <div key={index} className="border-b pb-2">
+          <div className="flex justify-between items-start">
+            <div className="font-medium">{item.item.name}</div>
+            <div className="text-right">
+              <div>Qty: {item.quantity}</div>
+              <div>₹{item.totalPrice.toFixed(2)}</div>
+            </div>
+          </div>
+          <div className="text-sm grid">
+            {Object.entries(item.selectedOptions).map(
+              ([optionName, optionValues]) => (
+                <div key={optionName}>
+                  <span className="font-semibold">{optionName}:</span>{" "}
+                  {optionValues.join(", ")}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      ))}
+      <div className="flex flex-col items-end">
+        {order.appliedPromo && (
+          <>
+            <div className="font-semibold">
+              Subtotal: ₹
+              {order.items
+                .reduce((sum, item) => sum + item.totalPrice, 0)
+                .toFixed(2)}
+            </div>
+            <div className="text-green-600">
+              Promo Applied: {order.appliedPromo.code} (
+              {order.appliedPromo.percentage}% off)
+            </div>
+          </>
+        )}
+        <div className="font-semibold text-lg mt-2">
+          Total: ₹{order.total !== null ? order.total.toFixed(2) : "N/A"}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -355,96 +415,63 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
               </TableCell>
             </TableRow>
           ) : (
-            currentOrders.map((order) => (
-              <React.Fragment key={order._id}>
+            currentGroupedOrders.map((groupedOrder) => (
+              <React.Fragment key={groupedOrder._id}>
                 <TableRow>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => toggleOrderExpansion(order._id)}
+                      onClick={() => toggleOrderExpansion(groupedOrder._id)}
                     >
-                      {expandedOrders.has(order._id) ? (
+                      {expandedOrders.has(groupedOrder._id) ? (
                         <ChevronUp className="h-4 w-4" />
                       ) : (
                         <ChevronDown className="h-4 w-4" />
                       )}
                     </Button>
                   </TableCell>
-                  <TableCell>{order.customerName}</TableCell>
-                  <TableCell>{order.phoneNumber}</TableCell>
+                  <TableCell>{groupedOrder.customerName}</TableCell>
+                  <TableCell>{groupedOrder.phoneNumber}</TableCell>
                   <TableCell>
-                    {order.total !== null
-                      ? `₹${order.total.toFixed(2)}`
-                      : "N/A"}
+                    ₹
+                    {(
+                      (groupedOrder.total || 0) +
+                      groupedOrder.subOrders.reduce(
+                        (sum, order) => sum + (order.total || 0),
+                        0
+                      )
+                    ).toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    {format(
-                      new Date(order.createdAt),
-                      "MMMM d yyyy 'at' h:mm a"
-                    )}
+                    {format(new Date(groupedOrder.createdAt), "MMMM d yyyy")}
                   </TableCell>
-                  <TableCell>{order.status}</TableCell>
+                  <TableCell>{groupedOrder.status}</TableCell>
                   {showBranchColumn && (
-                    <TableCell>{order.selectedLocation}</TableCell>
+                    <TableCell>{groupedOrder.selectedLocation}</TableCell>
                   )}
                 </TableRow>
-                {expandedOrders.has(order._id) && (
+                {expandedOrders.has(groupedOrder._id) && (
                   <TableRow>
                     <TableCell colSpan={showBranchColumn ? 7 : 6}>
                       <div className="p-4">
-                        <div className="space-y-4">
-                          {order.items.map((item, index) => (
-                            <div key={index} className="border-b pb-2">
-                              <div className="flex justify-between items-start">
-                                <div className="font-medium">
-                                  {item.item.name}
-                                </div>
-                                <div className="text-right">
-                                  <div>Qty: {item.quantity}</div>
-                                  <div>₹{item.totalPrice.toFixed(2)}</div>
-                                </div>
+                        {[groupedOrder, ...groupedOrder.subOrders].map(
+                          (order, index) => (
+                            <div
+                              key={index}
+                              className="mb-4 pb-4 border-b last:border-b-0"
+                            >
+                              <div className="font-semibold">
+                                Order {index + 1}
                               </div>
-                              <div className="text-sm grid">
-                                {Object.entries(item.selectedOptions).map(
-                                  ([optionName, optionValues]) => (
-                                    <div key={optionName}>
-                                      <span className="font-semibold">
-                                        {optionName}:
-                                      </span>{" "}
-                                      {optionValues.join(", ")}
-                                    </div>
-                                  )
-                                )}
+                              <div className="text-sm">
+                                Time:{" "}
+                                {format(new Date(order.createdAt), "h:mm a")}
                               </div>
+                              {renderOrderItems(order)}
                             </div>
-                          ))}
-                          <div className="flex flex-col items-end">
-                            {order.appliedPromo && (
-                              <>
-                                <div className="font-semibold">
-                                  Subtotal: ₹
-                                  {order.items
-                                    .reduce(
-                                      (sum, item) => sum + item.totalPrice,
-                                      0
-                                    )
-                                    .toFixed(2)}
-                                </div>
-                                <div className="text-green-600">
-                                  Promo Applied: {order.appliedPromo.code} (
-                                  {order.appliedPromo.percentage}% off)
-                                </div>
-                              </>
-                            )}
-                            <div className="font-semibold text-lg mt-2">
-                              Total: ₹
-                              {order.total !== null
-                                ? order.total.toFixed(2)
-                                : "N/A"}
-                            </div>
-                          </div>
-                        </div>
+                          )
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
