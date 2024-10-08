@@ -5,6 +5,7 @@ interface ResponseData {
   revenue: number;
   orders: number;
   expenses: number;
+   profit: number;  // Add this line
 }
 
 export default async function handler(
@@ -148,6 +149,7 @@ export default async function handler(
         revenue: totalRevenue,
         orders: totalOrders,
         expenses: totalExpenses,
+        profit: totalRevenue - totalExpenses, // Add this line
       };
     };
 
@@ -167,17 +169,18 @@ export default async function handler(
       return ((current - previous) / previous) * 100;
     };
 
-    const result: ResponseData = {
-      revenue: calculateGrowth(currentTotals.revenue, previousTotals.revenue),
-      orders: calculateGrowth(currentTotals.orders, previousTotals.orders),
-      expenses: calculateGrowth(
-        currentTotals.expenses,
-        previousTotals.expenses
-      ),
-    };
+     const result: ResponseData = {
+       revenue: calculateGrowth(currentTotals.revenue, previousTotals.revenue),
+       orders: calculateGrowth(currentTotals.orders, previousTotals.orders),
+       expenses: calculateGrowth(
+         currentTotals.expenses,
+         previousTotals.expenses
+       ),
+       profit: calculateGrowth(currentTotals.profit, previousTotals.profit), // Add this line
+     };
 
     res.status(200).json(result);
    } catch (error) {
-    res.status(500).json({ revenue: 0, orders: 0, expenses: 0 });
+    res.status(500).json({ revenue: 0, orders: 0, expenses: 0 , profit: 0 });
   }
 }

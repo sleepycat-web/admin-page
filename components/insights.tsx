@@ -23,10 +23,20 @@ interface DailyData {
   numberOfOrders: number;
   generalExpenses: number;
 }
+interface Totals {
+  revenue: number;
+  orders: number;
+  expenses: number;
+  userCount: number;
+  newUserCount: number;
+  profit: number; // Add this line
+}
+
 interface Growth {
   revenue: number;
   orders: number;
   expenses: number;
+  profit: number; // Add this line
 }
 
 const CUTOFF_DATE = new Date("2024-09-20T00:00:00Z");
@@ -36,14 +46,7 @@ interface InsightsComponentProps {
   selectedBranch: string;
 }
 
-interface Totals {
-  revenue: number;
-  orders: number;
-  expenses: number;
-  userCount: number;
-
-  newUserCount: number;
-}
+ 
 
 const InsightsComponent: React.FC<InsightsComponentProps> = ({
   dateRange,
@@ -56,6 +59,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
     expenses: 0,
     userCount: 0,
     newUserCount: 0,
+    profit: 0,  
   }); const [isGrowth, setIsGrowth] = useState<boolean>(true);
   
   const [isLoading, setIsLoading] = useState(true);
@@ -64,6 +68,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
    revenue: 0,
    orders: 0,
    expenses: 0,
+   profit: 0,  
  });
   const fetchInsightsData = useCallback(async () => {
     setIsLoading(true);
@@ -107,10 +112,8 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
         await userCountResponse.json();
 
      const percentages: Growth = await percentageResponse.json();
-     console.log("API Response:", percentages);
-     setGrowth(percentages);
-      console.log("State after setGrowth:", growth);
-      
+      setGrowth(percentages);
+       
       setIsGrowth(dateRange.start > CUTOFF_DATE);
       if (!Array.isArray(data)) {
         throw new Error("Received data is not an array");
@@ -136,6 +139,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
           expenses: acc.expenses + day.generalExpenses,
           userCount: userCount,
           newUserCount: newUserCount,
+          profit: acc.profit + (day.revenue - day.generalExpenses), // Add this line
         }),
         {
           revenue: 0,
@@ -143,6 +147,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
           expenses: 0,
           userCount: userCount,
           newUserCount: newUserCount,
+          profit: 0, // Add this line
         }
       );
 
@@ -163,6 +168,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
         revenue: newTotals.revenue / daysSinceCutoff,
         orders: newTotals.orders / daysSinceCutoff,
         expenses: newTotals.expenses / daysSinceCutoff,
+        profit: newTotals.profit / daysSinceCutoff, // Add this line
       };
       setGrowth(averages);
     } else {
@@ -240,7 +246,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
       {error && (
         <div className="text-red-500 p-4 bg-red-100 rounded">{error}</div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             Total Revenue
@@ -298,11 +304,31 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
                     {formatCurrency(totals.expenses)}
                   </div>
                   <div className="text-xs">
-                    {renderGrowthOrAverage(growth.expenses, "expenses")} 
+                    {renderGrowthOrAverage(growth.expenses, "expenses")}
                   </div>{" "}
                 </>
               )}
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            Gross Profit
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  {" "}
+                  {formatCurrency(totals.profit)}
+                </div>
+                <div className="text-xs">
+                  {renderGrowthOrAverage(growth.profit, "profit")}
+                </div>{" "}
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -375,7 +401,8 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
                   dataKey="generalExpenses"
                   name="Expenses"
                   stroke="#6A8FBF"
-                />
+                  />
+                  
               </LineChart>
             </ResponsiveContainer>
           )}

@@ -6,6 +6,7 @@ interface DailyStats {
   numberOfOrders: number;
   generalExpenses: number;
   revenue: number;
+  profit: number;
 }
 // Add this new interface for the order query
 interface OrderQuery {
@@ -99,30 +100,33 @@ export default async function handler(
           numberOfOrders: 0,
           generalExpenses: 0,
           revenue: 0,
+          profit: 0,
         };
       });
 
       // Process orders (new logic)
-      orders.forEach((order) => {
-        const dateStr = order._id;
-        if (dailyStats[dateStr]) {
-          dailyStats[dateStr].numberOfOrders += order.numberOfOrders;
-          dailyStats[dateStr].revenue += order.revenue;
-        }
-      });
+        orders.forEach((order) => {
+          const dateStr = order._id;
+          if (dailyStats[dateStr]) {
+            dailyStats[dateStr].numberOfOrders += order.numberOfOrders;
+            dailyStats[dateStr].revenue += order.revenue;
+            dailyStats[dateStr].profit += order.revenue; // Add this line
+          }
+        });
 
       // Process expenses (original logic)
-      expenses.forEach((expense) => {
-        const expenseDate = new Date(expense.createdAt);
-        const adjustedExpenseDate = new Date(
-          expenseDate.getTime() - (5 * 60 + 30) * 60000
-        ); // Subtract 5 hours and 30 minutes
-        const dateStr = adjustedExpenseDate.toISOString().split("T")[0];
+     expenses.forEach((expense) => {
+       const expenseDate = new Date(expense.createdAt);
+       const adjustedExpenseDate = new Date(
+         expenseDate.getTime() - (5 * 60 + 30) * 60000
+       );
+       const dateStr = adjustedExpenseDate.toISOString().split("T")[0];
 
-        if (dailyStats[dateStr]) {
-          dailyStats[dateStr].generalExpenses += expense.amount;
-        }
-      });
+       if (dailyStats[dateStr]) {
+         dailyStats[dateStr].generalExpenses += expense.amount;
+         dailyStats[dateStr].profit -= expense.amount; // Add this line
+       }
+     });
 
       const result = Object.values(dailyStats);
       res.status(200).json(result);

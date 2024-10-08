@@ -31,6 +31,7 @@ interface Order {
   items: OrderItem[];
   appliedPromo?: AppliedPromo;
   selectedLocation: string;
+  subOrders?: Order[]; // Add this line
 }
 
 interface GroupedOrder extends Order {
@@ -67,6 +68,26 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
   const [showAll, setShowAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 30;
+  const [promoCodePercentage, setPromoCodePercentage] = useState(0);
+
+  const calculatePromoCodePercentage = () => {
+   
+    const totalOrders = groupedOrders.length;
+    const ordersWithPromo = groupedOrders.filter(
+      (order) =>
+        order.appliedPromo ||
+        order.subOrders.some((subOrder) => subOrder.appliedPromo)
+    );
+    const percentage = totalOrders > 0 ? (ordersWithPromo.length / totalOrders) * 100 : 0;
+     
+    setPromoCodePercentage(percentage);
+  };
+
+
+  useEffect(() => {
+     calculateTotalOrdersSum();
+    calculatePromoCodePercentage();
+  }, [groupedOrders]);
 
   const calculateTotalOrdersSum = () => {
     const sum = groupedOrders.reduce(
@@ -81,10 +102,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
     );
     setTotalOrdersSum(sum);
   };
-
-  useEffect(() => {
-    calculateTotalOrdersSum();
-  }, [groupedOrders]);
+ 
 
   useEffect(() => {
     fetchOrders();
@@ -122,55 +140,59 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
     }
   };
 
-  const filterAndSortOrders = () => {
-    const searchTermLower = searchTerm.toLowerCase();
-    const filtered = orders.filter((order) => {
-      return (
-        order.customerName.toLowerCase().includes(searchTermLower) ||
-        order.phoneNumber.includes(searchTermLower) ||
-        (order.total?.toString() || "").includes(searchTermLower) ||
-        order.status.toLowerCase().includes(searchTermLower) ||
-        format(new Date(order.createdAt), "MMMM d yyyy")
-          .toLowerCase()
-          .includes(searchTermLower) ||
-        order.selectedLocation.toLowerCase().includes(searchTermLower)
-      );
-    });
+ const filterAndSortOrders = () => {
+   const searchTermLower = searchTerm.toLowerCase();
+   const filtered = orders.filter((order) => {
+     const hasPromo =
+       order.appliedPromo ||
+       order.subOrders?.some((subOrder) => subOrder.appliedPromo);
+     return (
+       order.customerName.toLowerCase().includes(searchTermLower) ||
+       order.phoneNumber.includes(searchTermLower) ||
+       (order.total?.toString() || "").includes(searchTermLower) ||
+       order.status.toLowerCase().includes(searchTermLower) ||
+       format(new Date(order.createdAt), "MMMM d yyyy")
+         .toLowerCase()
+         .includes(searchTermLower) ||
+       order.selectedLocation.toLowerCase().includes(searchTermLower) ||
+       (searchTermLower === "promo" && hasPromo)
+     );
+   });
 
-    // Group orders by customer name and date
-    const grouped = filtered.reduce<Record<string, GroupedOrder>>(
-      (acc, order) => {
-        const key = `${order.customerName}_${format(
-          new Date(order.createdAt),
-          "yyyy-MM-dd"
-        )}`;
-        if (!acc[key]) {
-          acc[key] = { ...order, subOrders: [] };
-        } else {
-          acc[key].subOrders.push(order);
-        }
-        return acc;
-      },
-      {}
-    );
+   // Group orders by customer name and date
+   const grouped = filtered.reduce<Record<string, GroupedOrder>>(
+     (acc, order) => {
+       const key = `${order.customerName}_${format(
+         new Date(order.createdAt),
+         "yyyy-MM-dd"
+       )}`;
+       if (!acc[key]) {
+         acc[key] = { ...order, subOrders: [] };
+       } else {
+         acc[key].subOrders.push(order);
+       }
+       return acc;
+     },
+     {}
+   );
 
-    const groupedArray = Object.values(grouped);
+   const groupedArray = Object.values(grouped);
 
-    groupedArray.sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
+   groupedArray.sort((a, b) => {
+     const aValue = a[sortConfig.key];
+     const bValue = b[sortConfig.key];
 
-      if (aValue === null || aValue === undefined) return 1;
-      if (bValue === null || bValue === undefined) return -1;
+     if (aValue === null || aValue === undefined) return 1;
+     if (bValue === null || bValue === undefined) return -1;
 
-      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-      return 0;
-    });
+     if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+     if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+     return 0;
+   });
 
-    setGroupedOrders(groupedArray);
-    setCurrentPage(1);
-  };
+   setGroupedOrders(groupedArray);
+   setCurrentPage(1);
+ };
 
   const showBranchColumn = selectedBranch === "all";
 
@@ -491,12 +513,19 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
         </TableBody>
       </Table>
       {!isLoading && (
-        <div className="flex justify-between items-center mt-4">
+        <div className="flex flex-col mt-4">
+          <div className=" text-gray-300">
+            Promo Code Usage:{" "}
+            {promoCodePercentage.toFixed(2)}%
+          </div>
           <div className="font-semibold text-lg">
             Total of All Orders: ₹{totalOrdersSum.toFixed(2)}
           </div>
+
           {!showAll && (
-            <div className="flex space-x-2">{renderPaginationButtons()}</div>
+            <div className="flex space-x-2 mt-2">
+              {renderPaginationButtons()}
+            </div>
           )}
         </div>
       )}
