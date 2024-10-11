@@ -66,57 +66,55 @@ const handleDateRangeChange = (value: string) => {
       break;
 
     case "thisWeek":
-      // This week: Today - 7 to Today
+      // This week: From Monday to today
       start = new Date(now);
-      start.setDate(start.getDate() - 7);
+      const dayOfWeek = start.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Adjust for Monday
+      start.setDate(start.getDate() + mondayOffset);
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999);
       break;
 
     case "previousWeek":
-      // Previous week: Today - 14 to Today - 7
-      end = new Date(now);
-      end.setDate(end.getDate() - 7);
-      end.setHours(23, 59, 59, 999);
+      // Previous week: Monday to Sunday
       start = new Date(now);
-      start.setDate(start.getDate() - 14);
+      const lastSundayOffset = start.getDay() === 0 ? -7 : -start.getDay();
+      end.setDate(end.getDate() + lastSundayOffset);
+      end.setHours(23, 59, 59, 999);
+
+      start = new Date(end);
+      start.setDate(start.getDate() - 6); // Previous Monday
       start.setHours(0, 0, 0, 0);
       break;
 
     case "thisMonth":
-      // This month: Today - 30 to Today
-      start = new Date(now);
-      start.setDate(start.getDate() - 30);
+      // This month: From 1st to today
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999);
       break;
 
     case "previousMonth":
-      // Previous month: Today - 60 to Today - 30
-      end = new Date(now);
-      end.setDate(end.getDate() - 30);
-      end.setHours(23, 59, 59, 999);
-      start = new Date(now);
-      start.setDate(start.getDate() - 60);
+      // Previous month: From 1st to last day of the previous month
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
       start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
       break;
 
     case "thisYear":
-      // This year: Today - 365 to Today
-      start = new Date(now);
-      start.setDate(start.getDate() - 365);
+      // This year: From 1st January to today
+      start = new Date(now.getFullYear(), 0, 1);
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999);
       break;
 
     case "previousYear":
-      // Previous year: Today - 730 to Today - 365
-      end = new Date(now);
-      end.setDate(end.getDate() - 365);
-      end.setHours(23, 59, 59, 999);
-      start = new Date(now);
-      start.setDate(start.getDate() - 730);
+      // Previous year: From 1st January to 31st December of the previous year
+      start = new Date(now.getFullYear() - 1, 0, 1);
+      end = new Date(now.getFullYear() - 1, 11, 31);
       start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
       break;
 
     case "allTime":
