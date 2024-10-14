@@ -81,6 +81,7 @@ export default async function handler(
           excludedExpensesResult,
           additionalRevenueResult,
         ] = await Promise.all([
+         //order result
           db
             .collection(orderCollection)
             .aggregate([
@@ -88,12 +89,20 @@ export default async function handler(
               {
                 $group: {
                   _id: null,
-                  totalRevenue: { $sum: "$total" },
+                  totalRevenue: {
+                    $sum: {
+                      $subtract: [
+                        "$total",
+                        { $ifNull: ["$tableDeliveryCharge", 0] },
+                      ],
+                    },
+                  },
                   totalOrders: { $sum: 1 },
                 },
               },
             ])
             .toArray(),
+          //expense result entire
           db
             .collection(expenseCollection)
             .aggregate([
@@ -103,6 +112,7 @@ export default async function handler(
               { $group: { _id: null, totalExpenses: { $sum: "$amount" } } },
             ])
             .toArray(),
+          //excluded expense resukt
           db
             .collection(expenseCollection)
             .aggregate([
@@ -120,6 +130,7 @@ export default async function handler(
               { $group: { _id: null, excludedExpenses: { $sum: "$amount" } } },
             ])
             .toArray(),
+          //additional revenue result
           db
             .collection(expenseCollection)
             .aggregate([
@@ -142,7 +153,7 @@ export default async function handler(
         totalOrders += orderResult[0]?.totalOrders || 0;
         totalExpenses +=
           (expenseResult[0]?.totalExpenses || 0) -
-          (excludedExpensesResult[0]?.excludedExpenses || 0);
+          (excludedExpensesResult[0]?.excludedExpenses || 0) ;
       }
 
       return {
