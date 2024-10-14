@@ -8,13 +8,14 @@ interface DailyStats {
   revenue: number;
   profit: number;
 }
-// Add this new interface for the order query
+
 interface OrderQuery {
   createdAt: {
     $gte: Date;
     $lt: Date;
   };
 }
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -33,16 +34,32 @@ export default async function handler(
       endDateTime.setDate(endDateTime.getDate() + 1); // Add one day
       endDateTime.setHours(5, 29, 59, 999); // Set to 5:29:59.999 AM
 
-      // Fetch orders (new logic)
-       const orderQuery: OrderQuery = {
-         createdAt: { $gte: startDateTime, $lt: endDateTime },
-       };
+      // Prepare queries
+      const orderQuery: OrderQuery = {
+        createdAt: { $gte: startDateTime, $lt: endDateTime },
+      };
 
+      const expenseQuery = {
+        createdAt: { $gte: startDateTime, $lt: endDateTime },
+        category: {
+          $nin: [
+            "UPI Payment",
+            "Extra Cash Payment",
+            "Extra UPI Payment",
+            "Drawings",
+          ],
+        },
+      };
+
+      // Determine collections based on branch
       let orderCollections = ["OrderSevoke", "OrderDagapur"];
+      let expenseCollections = ["ExpenseSevoke", "ExpenseDagapur"];
       if (branch !== "all") {
         orderCollections = [`Order${branch}`];
+        expenseCollections = [`Expense${branch}`];
       }
 
+      // Fetch orders
       const orderPromises = orderCollections.map((collection) =>
         db
           .collection(collection)
@@ -58,35 +75,63 @@ export default async function handler(
                   },
                 },
                 numberOfOrders: { $sum: 1 },
-                revenue: { $sum: "$total" },
+                revenue: {
+                  $sum: {
+                    $subtract: [
+                      "$total",
+                      { $ifNull: ["$tableDeliveryCharge", 0] },
+                    ],
+                  },
+                },
               },
             },
-            { $sort: { _id: 1 } },
           ])
           .toArray()
       );
 
-      const ordersArrays = await Promise.all(orderPromises);
-      const orders = ordersArrays.flat();
+      // Fetch extra payments
+      const extraPaymentsPromises = expenseCollections.map((collection) =>
+        db
+          .collection(collection)
+          .aggregate([
+            {
+              $match: {
+                createdAt: { $gte: startDateTime, $lt: endDateTime },
+                category: { $in: ["Extra Cash Payment", "Extra UPI Payment"] },
+              },
+            },
+            {
+              $group: {
+                _id: {
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: "$createdAt",
+                    timezone: "+05:30",
+                  },
+                },
+                extraPayments: { $sum: "$amount" },
+              },
+            },
+          ])
+          .toArray()
+      );
 
-      // Fetch expenses (original logic)
-      let expenseCollections = ["ExpenseSevoke", "ExpenseDagapur"];
-      if (branch !== "all") {
-        expenseCollections = [`Expense${branch}`];
-      }
-
-      const expenseQuery = {
-        createdAt: { $gte: startDateTime, $lt: endDateTime },
-        category: {
-          $nin: ["UPI Payment", "Extra Cash Payment", "Extra UPI Payment", "Drawings"],
-        },
-      };
-
+      // Fetch expenses
       const expensesPromises = expenseCollections.map((collection) =>
         db.collection(collection).find(expenseQuery).toArray()
       );
 
-      const expensesArrays = await Promise.all(expensesPromises);
+      // Wait for all promises to resolve
+      const [ordersArrays, extraPaymentsArrays, expensesArrays] =
+        await Promise.all([
+          Promise.all(orderPromises),
+          Promise.all(extraPaymentsPromises),
+          Promise.all(expensesPromises),
+        ]);
+
+      // Flatten the results
+      const orders = ordersArrays.flat();
+      const extraPayments = extraPaymentsArrays.flat();
       const expenses = expensesArrays.flat();
 
       // Process data day by day
@@ -104,29 +149,38 @@ export default async function handler(
         };
       });
 
-      // Process orders (new logic)
-        orders.forEach((order) => {
-          const dateStr = order._id;
-          if (dailyStats[dateStr]) {
-            dailyStats[dateStr].numberOfOrders += order.numberOfOrders;
-            dailyStats[dateStr].revenue += order.revenue;
-            dailyStats[dateStr].profit += order.revenue; // Add this line
-          }
-        });
+      // Process orders
+      orders.forEach((order) => {
+        const dateStr = order._id;
+        if (dailyStats[dateStr]) {
+          dailyStats[dateStr].numberOfOrders += order.numberOfOrders;
+          dailyStats[dateStr].revenue += order.revenue;
+          dailyStats[dateStr].profit += order.revenue;
+        }
+      });
 
-      // Process expenses (original logic)
-     expenses.forEach((expense) => {
-       const expenseDate = new Date(expense.createdAt);
-       const adjustedExpenseDate = new Date(
-         expenseDate.getTime() - (5 * 60 + 30) * 60000
-       );
-       const dateStr = adjustedExpenseDate.toISOString().split("T")[0];
+      // Process extra payments
+      extraPayments.forEach((payment) => {
+        const dateStr = payment._id;
+        if (dailyStats[dateStr]) {
+          dailyStats[dateStr].revenue += payment.extraPayments;
+          dailyStats[dateStr].profit += payment.extraPayments;
+        }
+      });
 
-       if (dailyStats[dateStr]) {
-         dailyStats[dateStr].generalExpenses += expense.amount;
-         dailyStats[dateStr].profit -= expense.amount; // Add this line
-       }
-     });
+      // Process expenses
+      expenses.forEach((expense) => {
+        const expenseDate = new Date(expense.createdAt);
+        const adjustedExpenseDate = new Date(
+          expenseDate.getTime() - (5 * 60 + 30) * 60000
+        );
+        const dateStr = adjustedExpenseDate.toISOString().split("T")[0];
+
+        if (dailyStats[dateStr]) {
+          dailyStats[dateStr].generalExpenses += expense.amount;
+          dailyStats[dateStr].profit -= expense.amount;
+        }
+      });
 
       const result = Object.values(dailyStats);
       res.status(200).json(result);
