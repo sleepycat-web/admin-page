@@ -58,6 +58,7 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
     "General",
     "Online Payments",
     "Cash Payments",
+    "Extra Payments",
     "Supplier",
     "Drawings",
     "Suspense",
@@ -276,7 +277,7 @@ const calculateDisplayedTotal = () => {
               {categories.map((cat, index) => (
                 <React.Fragment key={cat}>
                   <SelectItem value={cat}>{cat}</SelectItem>
-                  {index === 2 && <SelectSeparator />}
+                  {index === 3 && <SelectSeparator />}
                 </React.Fragment>
               ))}
             </SelectContent>

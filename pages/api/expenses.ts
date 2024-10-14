@@ -43,7 +43,13 @@ export default async function handler(
           };
         } else if (category === "Cash Payments") {
           categoryFilter = { category: "Extra Cash Payment" };
-        } else {
+        }
+        else if (category === "Extra Payments") { 
+           categoryFilter = {
+             category: { $in: ["Extra Cash Payment", "Extra UPI Payment"] },
+           };
+        }
+        else {
           categoryFilter = { category: category };
         }
       } else {
