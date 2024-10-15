@@ -124,8 +124,7 @@ const handleDateRangeChange = (value: string) => {
       break;
 
     case "custom":
-      setIsCalendarOpen(true);
-      return; // Don't update dateRange for custom selection
+       return; // Don't update dateRange for custom selection
   }
 
   setDateRange({ start, end });

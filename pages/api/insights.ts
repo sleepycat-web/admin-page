@@ -39,6 +39,10 @@ export default async function handler(
         createdAt: { $gte: startDateTime, $lt: endDateTime },
       };
 
+ const extraQuery = {
+   createdAt: { $gte: startDateTime, $lt: endDateTime },
+   category: { $in: ["Extra Cash Payment", "Extra UPI Payment"] },
+ };
       const expenseQuery = {
         createdAt: { $gte: startDateTime, $lt: endDateTime },
         category: {
@@ -91,14 +95,10 @@ export default async function handler(
 
       // Fetch extra payments
       const extraPaymentsPromises = expenseCollections.map((collection) =>
-        db
-          .collection(collection)
+        db.collection(collection)
           .aggregate([
             {
-              $match: {
-                createdAt: { $gte: startDateTime, $lt: endDateTime },
-                category: { $in: ["Extra Cash Payment", "Extra UPI Payment"] },
-              },
+              $match: extraQuery,
             },
             {
               $group: {
