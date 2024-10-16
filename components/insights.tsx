@@ -246,16 +246,18 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
        </span>
      );
    } else {
+     const displayValue = isNaN(value) ? 0 : value;
+
      if (metricName === "orders") {
        return (
          <span className="text-neutral-400">
-           Avg: {Math.floor(value)} / day
+           Avg: {Math.floor(displayValue)} / day
          </span>
        );
      } else {
        return (
          <span className="text-neutral-400">
-           Avg: ₹{value.toFixed(2)} / day
+           Avg: ₹{displayValue.toFixed(2)} / day
          </span>
        );
      }

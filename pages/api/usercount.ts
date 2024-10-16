@@ -11,13 +11,17 @@ export default async function handler(
       const userCollection = db.collection("UserData");
 
       const { startDate, endDate } = req.body;
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      const startDateTime = new Date(startDate);
+      startDateTime.setHours(5, 30, 0, 0); // Set to 5:30 AM
+
+      const endDateTime = new Date(endDate);
+      endDateTime.setDate(endDateTime.getDate() + 1); // Add one day
+      endDateTime.setHours(5, 29, 59, 999); // Set to 5:29:59.999 AM
 
       const totalUserCount = await userCollection.countDocuments();
 
       const newUserCount = await userCollection.countDocuments({
-        signupDate: { $gte: start, $lte: end },
+        signupDate: { $gte: startDateTime, $lte: endDateTime },
       });
 
       res.status(200).json({
