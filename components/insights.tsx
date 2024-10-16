@@ -151,30 +151,53 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
         }
       );
 
-      // Calculate the number of days since cutoff
-      const daysSinceCutoff = Math.ceil(
-        (dateRange.end.getTime() - CUTOFF_DATE.getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
+     const isAllTime = dateRange.start.getTime() === 0;
 
+     // Determine the effective start date
+     const effectiveStartDate = isAllTime
+       ? CUTOFF_DATE
+       : dateRange.start < CUTOFF_DATE
+       ? CUTOFF_DATE
+       : dateRange.start;
 
-    // Determine if it's a growth scenario
-    const isGrowthScenario = dateRange.start > CUTOFF_DATE;
-    setIsGrowth(isGrowthScenario);
+     // Calculate the number of days in the effective range
+     const daysDiff = Math.max(
+       1,
+       Math.ceil(
+         (dateRange.end.getTime() - effectiveStartDate.getTime()) /
+           (1000 * 60 * 60 * 24)
+       )
+     );
 
-    if (!isGrowthScenario) {
-      // Calculate daily averages only if it's not a growth scenario
-      const averages = {
-        revenue: newTotals.revenue / daysSinceCutoff,
-        orders: newTotals.orders / daysSinceCutoff,
-        expenses: newTotals.expenses / daysSinceCutoff,
-        profit: newTotals.profit / daysSinceCutoff, // Add this line
-      };
-      setGrowth(averages);
-    } else {
-      // If it's a growth scenario, use the percentages from the API
-      setGrowth(percentages);
-    }
+     // Filter data to only include entries from the effective start date
+     const effectiveData = validData.filter(
+       (day) => new Date(day.date) >= effectiveStartDate
+     );
+
+     // For "All Time" selection or when start date is before cutoff, use the length of effectiveData
+     // Otherwise, use daysDiff
+     const effectiveDays =
+       isAllTime || dateRange.start < CUTOFF_DATE
+         ? effectiveData.length
+         : daysDiff;
+
+     // Determine if it's a growth scenario
+     const isGrowthScenario = !isAllTime && effectiveStartDate > CUTOFF_DATE;
+      setIsGrowth(isGrowthScenario);
+      
+        if (!isGrowthScenario) {
+          // Calculate daily averages
+          const averages = {
+            revenue: newTotals.revenue / effectiveDays,
+            orders: newTotals.orders / effectiveDays,
+            expenses: newTotals.expenses / effectiveDays,
+            profit: newTotals.profit / effectiveDays,
+          };
+          setGrowth(averages);
+        } else {
+          // If it's a growth scenario, use the percentages from the API
+          setGrowth(percentages);
+        }
       setTotals(newTotals);
       setError(null);
     } catch (error) {
