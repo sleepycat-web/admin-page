@@ -169,8 +169,14 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
     indexOfFirstExpense,
     indexOfLastExpense
   );
-const calculateDisplayedTotal = () => {
-  return currentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+const calculateTotal = () => {
+  if (searchTerm) {
+    // If there's a search term, calculate total only for displayed expenses
+    return currentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  } else {
+    // If no search term, calculate total for all filtered expenses
+    return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  }
 };
   const totalPages = Math.ceil(sortedExpenses.length / expensesPerPage);
 
@@ -350,7 +356,7 @@ const calculateDisplayedTotal = () => {
           </Table>
           <div className="flex justify-between items-center mt-4">
             <p className="text-xl font-bold">
-              Total: ₹{calculateDisplayedTotal().toFixed(2)}
+              Total: ₹{calculateTotal().toFixed(2)}
             </p>{" "}
             {!showAll && (
               <div className="flex space-x-2">{renderPaginationButtons()}</div>
