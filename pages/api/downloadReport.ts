@@ -298,7 +298,7 @@ export default async function handler(
         });
 
         // Apply wrapText style to the "Expense Details" cell
-        row.getCell("otherExpenses").alignment = { wrapText: true }; // Apply wrapText for specific cell
+        // row.getCell("otherExpenses").alignment = { wrapText: true }; // Apply wrapText for specific cell
       });
 
       // Generate Excel file
