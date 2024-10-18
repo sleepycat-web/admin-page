@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { connectToDatabase } from "@/lib/mongodb";
 import ExcelJS from "exceljs";
+import { Column } from 'exceljs'; // Import the Column type
 
 export default async function handler(
   req: NextApiRequest,
@@ -233,29 +234,71 @@ export default async function handler(
       const worksheet = workbook.addWorksheet("Insights Report");
 
       // Add headers
-      worksheet.addRow([
-        "Date",
-        "Branch",
-        "Revenue",
-        "Expenses",
-        "Profit",
-        "Online Payments",
-        "Cash Payments",
-        "Expense Details",
-      ]);
+
+      // Define headers with the correct types
+      const headers: Partial<Column>[] = [
+        {
+          header: "Date",
+          key: "date",
+          width: 20,
+          alignment: { horizontal: "left" } as const, // Correct
+        },
+        {
+          header: "Branch",
+          key: "branch",
+          width: 20,
+          alignment: { horizontal: "left" } as const, // Correct
+        },
+        {
+          header: "Revenue",
+          key: "revenue",
+          alignment: { horizontal: "left" } as const, // Correct
+        },
+        {
+          header: "Expenses",
+          key: "expenses",
+          alignment: { horizontal: "left" } as const, // Correct
+        },
+        {
+          header: "Profit",
+          key: "profit",
+          alignment: { horizontal: "left" } as const, // Correct
+        },
+        {
+          header: "Online Payments",
+          key: "onlinePayments",
+          alignment: { horizontal: "left" } as const, // Correct
+        },
+        {
+          header: "Cash Payments",
+          key: "cashPayments",
+          alignment: { horizontal: "left" } as const, // Correct
+        },
+        {
+          header: "Expense Details",
+          key: "otherExpenses",
+          width: 40,
+          alignment: { horizontal: "left" } as const, // Correct
+        },
+      ];
+
+      worksheet.columns = headers;
 
       // Add data
       Object.values(dailyData).forEach((day) => {
-        worksheet.addRow([
-          day.date,
-          day.branch,
-          day.revenue,
-          day.expenses,
-          day.profit,
-          day.onlinePayments,
-          day.cashPayments,
-          day.otherExpenses.join(", "),
-        ]);
+        const row = worksheet.addRow({
+          date: day.date,
+          branch: day.branch,
+          revenue: day.revenue,
+          expenses: day.expenses,
+          profit: day.profit,
+          onlinePayments: day.onlinePayments,
+          cashPayments: day.cashPayments,
+          otherExpenses: day.otherExpenses.join(", "),
+        });
+
+        // Apply wrapText style to the "Expense Details" cell
+        row.getCell("otherExpenses").alignment = { wrapText: true }; // Apply wrapText for specific cell
       });
 
       // Generate Excel file
@@ -278,25 +321,27 @@ export default async function handler(
       res.status(500).json({ error: "Error generating report" });
     }
   } else {
-    res.setHeader("Allow", ["POST"]);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    res.status(405).json({ error: "Method not allowed" });
   }
 }
 
-function getDateRange(start: Date, end: Date): Date[] {
-  const dates: Date[] = [];
-  const current = new Date(start);
-  while (current < end) {
-    dates.push(new Date(current));
-    current.setDate(current.getDate() + 1);
-  }
-  return dates;
-}
-
+// Helper function to format date in DD/MM/YYYY format
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
   }).format(date);
+}
+
+
+// Helper function to generate date range
+function getDateRange(startDate: Date, endDate: Date): Date[] {
+  const dates = [];
+  const currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    dates.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  return dates;
 }
