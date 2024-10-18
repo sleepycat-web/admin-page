@@ -28,12 +28,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2 } from "lucide-react";
 
+ 
 interface User {
   name: string;
   phoneNumber: string;
   banStatus: boolean;
-  signupDate: { $date: string };
+  signupDate: string | { $date: string } | Date;
 }
+
 
 const UserDataComp: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -46,37 +48,81 @@ const UserDataComp: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+    
+const fetchUsers = async () => {
+  setIsLoading(true);
+  try {
+    const response = await fetch("/api/userDataHandler");
+    const data = await response.json();
+    console.log("Raw data from API:", data); // Debugging line
 
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/userDataHandler");
-      const data = await response.json();
-      // Sort users from newest to oldest
-      const sortedUsers = data.sort(
-        (a: User, b: User) =>
-          new Date(b.signupDate.$date).getTime() -
-          new Date(a.signupDate.$date).getTime()
-      );
-      setUsers(sortedUsers);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Sort users from newest to oldest
+    const sortedUsers = data.sort((a: User, b: User) => {
+      const dateA = parseDate(a.signupDate);
+      const dateB = parseDate(b.signupDate);
+      return dateB.getTime() - dateA.getTime();
+    });
+    setUsers(sortedUsers);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
+ const parseDate = (dateInput: string | { $date: string } | Date): Date => {
+   if (dateInput instanceof Date) {
+     return dateInput;
+   }
+   if (typeof dateInput === "string") {
+     return new Date(dateInput);
+   }
+   if (dateInput && "$date" in dateInput) {
+     return new Date(dateInput.$date);
+   }
+   console.error("Invalid date format:", dateInput);
+   return new Date(0);
+ };
 
-  const filterUsers = () => {
-    return users.filter(
-      (user) =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.phoneNumber.includes(searchTerm)
-    );
-  };
+ const formatDate = (dateInput: string | { $date: string } | Date): string => {
+   const date = parseDate(dateInput);
+
+   if (isNaN(date.getTime())) {
+     console.error("Invalid date after parsing:", dateInput);
+     return "Invalid Date";
+   }
+
+   // Create a new Date object with the UTC time
+   const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+
+  
+   return utcDate.toLocaleString("en-US", {
+     day: "numeric",
+     month: "long",
+     year: "numeric",
+     hour: "numeric",
+     minute: "2-digit",
+     hour12: true,
+     timeZone: "Asia/Kolkata",
+   });
+ };
+
+
+ const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+   setSearchTerm(event.target.value);
+ };
+
+ const filterUsers = () => {
+   const lowercaseSearchTerm = searchTerm.toLowerCase();
+   return users.filter((user) => {
+     const formattedDate = formatDate(user.signupDate).toLowerCase();
+     return (
+       user.name.toLowerCase().includes(lowercaseSearchTerm) ||
+       user.phoneNumber.includes(lowercaseSearchTerm) ||
+       formattedDate.includes(lowercaseSearchTerm)
+     );
+   });
+ };
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
@@ -111,37 +157,7 @@ const UserDataComp: React.FC = () => {
     }
   };
 
-  const formatDate = (dateInput: string | { $date: string }) => {
-    let dateString: string;
-
-    if (typeof dateInput === "string") {
-      dateString = dateInput;
-    } else if (dateInput && typeof dateInput.$date === "string") {
-      dateString = dateInput.$date;
-    } else {
-      return "Invalid Date";
-    }
-
-    const date = new Date(dateString);
-
-    if (isNaN(date.getTime())) {
-      return "Invalid Date";
-    }
-
-    // Add 5 hours and 30 minutes to adjust for the desired time zone
-    date.setHours(date.getHours() + 5, date.getMinutes() + 30);
-
-    return date
-      .toLocaleString("en-US", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      })
-      .replace(",", " ");
-  };
+ 
 
   return (
     <div className="space-y-4">
