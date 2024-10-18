@@ -221,6 +221,37 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
       day: "numeric",
     });
   };
+  const handleDownloadReport = async () => {
+    try {
+      const response = await fetch("/api/downloadReport", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startDate: dateRange.start.toISOString(),
+          endDate: dateRange.end.toISOString(),
+          branch: selectedBranch,
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+        a.download = "insights_report.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } else {
+        console.error("Failed to download report");
+      }
+    } catch (error) {
+      console.error("Error downloading report:", error);
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -439,6 +470,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
           variant="secondary"
           size="sm"
           className="flex items-center gap-2"
+          onClick={handleDownloadReport}
         >
           <span>Download Report</span>
           <Download className="h-4 w-4" />

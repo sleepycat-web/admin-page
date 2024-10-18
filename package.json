@@ -28,6 +28,7 @@
     "date-fns": "^2.30.0",
     "date-fns-tz": "^2.0.0",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "lucide-react": "^0.439.0",
     "mongodb": "^6.8.1",
     "next": "14.2.8",
