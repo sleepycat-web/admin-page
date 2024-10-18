@@ -217,6 +217,7 @@ const UserDataComp: React.FC = () => {
     []
   );
 
+ 
   const renderPaginationButtons = useCallback(() => {
     const buttons = [];
     const maxVisiblePages = 5;
@@ -314,6 +315,9 @@ const UserDataComp: React.FC = () => {
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold md:block hidden">Users</h1>
+      {!isLoading && (
+        <div className="text-sm ">Total users: {users.length}</div>
+      )}
       <div className="flex justify-between items-center">
         <Input
           placeholder="Search"
