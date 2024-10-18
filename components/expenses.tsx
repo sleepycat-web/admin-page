@@ -263,7 +263,17 @@ const calculateTotal = () => {
 
     return buttons;
   };
-
+ const renderSortableHeader = (column: keyof Expense, label: string) => (
+   <TableHead>
+     <Button
+       variant="ghost"
+       onClick={() => handleSort(column)}
+       className="w-full justify-start"
+     >
+       {label} {sortColumn === column && (sortDirection === "asc" ? "↑" : "↓")}
+     </Button>
+   </TableHead>
+ );
   return (
     <>
       <div className="mb-4">
@@ -304,38 +314,12 @@ const calculateTotal = () => {
             <TableCaption>{formatDateRange()}</TableCaption>
             <TableHeader>
               <TableRow>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort("category")}
-                >
-                  Category
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort("amount")}
-                >
-                  Amount
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort("comment")}
-                >
-                  Comment
-                </TableHead>
-                {selectedBranch === "all" && (
-                  <TableHead
-                    className="cursor-pointer"
-                    onClick={() => handleSort("branch")}
-                  >
-                    Branch
-                  </TableHead>
-                )}
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort("createdAt")}
-                >
-                  Date 
-                </TableHead>
+                {renderSortableHeader("category", "Category")}
+                {renderSortableHeader("amount", "Amount")}
+                {renderSortableHeader("comment", "Comment")}
+                {selectedBranch === "all" &&
+                  renderSortableHeader("branch", "Branch")}
+                {renderSortableHeader("createdAt", "Date")}
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,8 +35,12 @@ interface User {
   signupDate: string | { $date: string } | Date;
 }
 
+type SortField = "name" | "signupDate";
+type SortDirection = "asc" | "desc";
+
 const UserDataComp: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newName, setNewName] = useState("");
@@ -46,29 +50,70 @@ const UserDataComp: React.FC = () => {
   const [showAll, setShowAll] = useState(false);
   const usersPerPage = 30;
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const [sortConfig, setSortConfig] = useState<{
+    key: SortField;
+    direction: SortDirection;
+  }>({ key: "signupDate", direction: "desc" });
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch("/api/userDataHandler");
       const data = await response.json();
-      console.log("Raw data from API:", data);
-
-      const sortedUsers = data.sort((a: User, b: User) => {
-        const dateA = parseDate(a.signupDate);
-        const dateB = parseDate(b.signupDate);
-        return dateB.getTime() - dateA.getTime();
-      });
-      setUsers(sortedUsers);
+      setUsers(data);
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    filterAndSortUsers();
+  }, [users, searchTerm, sortConfig]);
+
+  const filterAndSortUsers = () => {
+    let filtered = users.filter((user) => {
+      const searchTermLower = searchTerm.toLowerCase();
+      return (
+        user.name.toLowerCase().includes(searchTermLower) ||
+        user.phoneNumber.includes(searchTermLower) ||
+        formatDate(user.signupDate).toLowerCase().includes(searchTermLower)
+      );
+    });
+
+    filtered.sort((a, b) => {
+      if (sortConfig.key === "name") {
+        return sortConfig.direction === "asc"
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name);
+      } else {
+        const dateA = parseDate(a.signupDate);
+        const dateB = parseDate(b.signupDate);
+        return sortConfig.direction === "asc"
+          ? dateA.getTime() - dateB.getTime()
+          : dateB.getTime() - dateA.getTime();
+      }
+    });
+
+    setFilteredUsers(filtered);
+    setCurrentPage(1);
   };
+
+  const handleSort = (key: SortField) => {
+    setSortConfig((prevConfig) => ({
+      key,
+      direction:
+        prevConfig.key === key && prevConfig.direction === "asc"
+          ? "desc"
+          : "asc",
+    }));
+  };
+ 
 
   const parseDate = (dateInput: string | { $date: string } | Date): Date => {
     if (dateInput instanceof Date) {
@@ -83,43 +128,49 @@ const UserDataComp: React.FC = () => {
     console.error("Invalid date format:", dateInput);
     return new Date(0);
   };
+const cutoffDate = new Date("2024-09-21");
+   const formatDate = (
+     dateInput: string | { $date: string } | Date
+   ): string => {
+     const date = parseDate(dateInput);
+     if (isNaN(date.getTime())) {
+       console.error("Invalid date after parsing:", dateInput);
+       return "Invalid Date";
+     }
 
-  const formatDate = (dateInput: string | { $date: string } | Date): string => {
-    const date = parseDate(dateInput);
+     // Subtract 5 hours and 30 minutes
+     const adjustedDate = new Date(date.getTime() - (5 * 60 + 30) * 60000);
 
-    if (isNaN(date.getTime())) {
-      console.error("Invalid date after parsing:", dateInput);
-      return "Invalid Date";
-    }
+     if (adjustedDate < cutoffDate) {
+       // For dates before September 21, 2024, show only the date
+       return adjustedDate
+         .toLocaleString("en-US", {
+           day: "numeric",
+           month: "long",
+           year: "numeric",
+           timeZone: "Asia/Kolkata",
+         })
+         .replace(",", "");
+;
+     } else {
+       // For dates after September 21, 2024, show both date and time
+       return adjustedDate
+         .toLocaleString("en-US", {
+           day: "numeric",
+           month: "long",
+           year: "numeric",
+           hour: "numeric",
+           minute: "2-digit",
+           hour12: true,
+           timeZone: "Asia/Kolkata",
+         })
+         .replace(",", "");
+     }
+   };
 
-    const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
-
-    return utcDate.toLocaleString("en-US", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "Asia/Kolkata",
-    });
-  };
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
-    setCurrentPage(1);
-  };
-
-  const filterUsers = () => {
-    const lowercaseSearchTerm = searchTerm.toLowerCase();
-    return users.filter((user) => {
-      const formattedDate = formatDate(user.signupDate).toLowerCase();
-      return (
-        user.name.toLowerCase().includes(lowercaseSearchTerm) ||
-        user.phoneNumber.includes(lowercaseSearchTerm) ||
-        formattedDate.includes(lowercaseSearchTerm)
-      );
-    });
   };
 
   const handleEdit = (user: User) => {
@@ -155,7 +206,6 @@ const UserDataComp: React.FC = () => {
     }
   };
 
-  const filteredUsers = filterUsers();
   const indexOfLastUser = showAll
     ? filteredUsers.length
     : currentPage * usersPerPage;
@@ -164,11 +214,6 @@ const UserDataComp: React.FC = () => {
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  const toggleShowAll = () => {
-    setShowAll(!showAll);
-    setCurrentPage(1);
-  };
 
   const renderPaginationButtons = () => {
     const buttons = [];
@@ -246,6 +291,19 @@ const UserDataComp: React.FC = () => {
 
     return buttons;
   };
+  const renderSortableHeader = (column: SortField, label: string) => (
+    <TableHead>
+      <Button
+        variant="ghost"
+        onClick={() => handleSort(column)}
+        className="w-full justify-start"
+      >
+        {label}{" "}
+        {sortConfig.key === column &&
+          (sortConfig.direction === "asc" ? "↑" : "↓")}
+      </Button>
+    </TableHead>
+  );
 
   return (
     <div className="space-y-4">
@@ -257,16 +315,16 @@ const UserDataComp: React.FC = () => {
           onChange={handleSearch}
           className="max-w-sm"
         />
-        <Button onClick={toggleShowAll} variant="outline">
+        <Button onClick={() => setShowAll(!showAll)} variant="outline">
           {showAll ? "Show Paginated" : "Show All"}
         </Button>
       </div>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
+            {renderSortableHeader("name", "Name")}
             <TableHead>Phone Number</TableHead>
-            <TableHead>Signup Date</TableHead>
+            {renderSortableHeader("signupDate", "Signup Date")}
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
