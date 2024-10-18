@@ -102,8 +102,8 @@ const columns: ColumnDef<BannedUser>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           className="w-full justify-start"
         >
-          Name
-          <CaretSortIcon className="ml-2 h-4 w-4" />
+          Name{" "}
+          {column.getIsSorted() && (column.getIsSorted() === "asc" ? "↑" : "↓")}
         </Button>
       );
     },
@@ -125,8 +125,8 @@ const columns: ColumnDef<BannedUser>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           className="w-full justify-start"
         >
-          Date Banned
-          <CaretSortIcon className="ml-2 h-4 w-4" />
+          Date Banned{" "}
+          {column.getIsSorted() && (column.getIsSorted() === "asc" ? "↑" : "↓")}
         </Button>
       );
     },
@@ -149,12 +149,15 @@ const columns: ColumnDef<BannedUser>[] = [
 function DataTableDemo() {
   const [data, setData] = React.useState<BannedUser[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  // Initialize sorting state with banDate in desc order
+  const [sorting, setSorting] = React.useState<SortingState>([
+    {
+      id: "banDate",
+      desc: true
+    }
+  ]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
   React.useEffect(() => {
@@ -194,6 +197,15 @@ function DataTableDemo() {
       columnVisibility,
       rowSelection,
     },
+    // Set initial sorting state
+    initialState: {
+      sorting: [
+        {
+          id: "banDate",
+          desc: true
+        }
+      ]
+    }
   });
 
   return (
@@ -214,7 +226,7 @@ function DataTableDemo() {
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead className=" " key={header.id}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -243,7 +255,7 @@ function DataTableDemo() {
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className=" ">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

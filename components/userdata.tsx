@@ -307,7 +307,7 @@ const cutoffDate = new Date("2024-09-21");
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold md:block hidden">User Data</h1>
+      <h1 className="text-lg font-semibold md:block hidden">Users</h1>
       <div className="flex justify-between items-center">
         <Input
           placeholder="Search"
@@ -319,72 +319,74 @@ const cutoffDate = new Date("2024-09-21");
           {showAll ? "Show Paginated" : "Show All"}
         </Button>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {renderSortableHeader("name", "Name")}
-            <TableHead>Phone Number</TableHead>
-            {renderSortableHeader("signupDate", "Signup Date")}
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={4} className="text-center">
-                <Loader2 className="mx-auto animate-spin" />
-              </TableCell>
+              {renderSortableHeader("name", "Name")}
+              <TableHead>Phone Number</TableHead>
+              {renderSortableHeader("signupDate", "Signup Date")}
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ) : (
-            currentUsers.map((user) => (
-              <TableRow key={user.phoneNumber} className="group">
-                <TableCell>
-                  <span className={user.banStatus ? "text-red-600" : ""}>
-                    {user.name}
-                    {user.banStatus ? " (Banned)" : ""}
-                  </span>
-                </TableCell>
-                <TableCell>{user.phoneNumber}</TableCell>
-                <TableCell>{formatDate(user.signupDate)}</TableCell>
-                <TableCell>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          onClick={() => handleEdit(user)}
-                        >
-                          Edit
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit User</DialogTitle>
-                        </DialogHeader>
-                        <Input
-                          value={newName}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            setNewName(e.target.value)
-                          }
-                          placeholder="New name"
-                        />
-                        <Button onClick={handleSave}>Save</Button>
-                      </DialogContent>
-                    </Dialog>
-                    <Button
-                      variant="destructive"
-                      onClick={() => handleDelete(user)}
-                      className="ml-2"
-                    >
-                      Delete
-                    </Button>
-                  </div>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  <Loader2 className="mx-auto animate-spin" />
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              currentUsers.map((user) => (
+                <TableRow key={user.phoneNumber} className="group ">
+                  <TableCell className="">
+                    <span className={user.banStatus ? "text-red-600" : ""}>
+                      {user.name}
+                      {user.banStatus ? " (Banned)" : ""}
+                    </span>
+                  </TableCell>
+                  <TableCell>{user.phoneNumber}</TableCell>
+                  <TableCell>{formatDate(user.signupDate)}</TableCell>
+                  <TableCell>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            onClick={() => handleEdit(user)}
+                          >
+                            Edit
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Edit User</DialogTitle>
+                          </DialogHeader>
+                          <Input
+                            value={newName}
+                            onChange={(
+                              e: React.ChangeEvent<HTMLInputElement>
+                            ) => setNewName(e.target.value)}
+                            placeholder="New name"
+                          />
+                          <Button onClick={handleSave}>Save</Button>
+                        </DialogContent>
+                      </Dialog>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleDelete(user)}
+                        className="ml-2"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
       {!isLoading && !showAll && filteredUsers.length > 0 && (
         <div className="flex justify-end mt-4">
           <div className="flex space-x-2">{renderPaginationButtons()}</div>
