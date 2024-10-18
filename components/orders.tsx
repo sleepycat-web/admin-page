@@ -513,14 +513,16 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
         </TableBody>
       </Table>
       {!isLoading && (
-        <div className="flex flex-col mt-4">
-          <div className=" text-gray-300">
-            Promo Code Usage: {promoCodePercentage.toFixed(2)}%
+        <div className="flex justify-between items-center mt-4">
+          {" "}
+          <div className="flex flex-col">
+            <div className=" text-gray-300">
+              Promo Code Usage: {promoCodePercentage.toFixed(2)}%
+            </div>
+            <div className="font-semibold text-lg">
+              Total of All Orders: ₹{totalOrdersSum.toFixed(2)}
+            </div>
           </div>
-          <div className="font-semibold text-lg">
-            Total of All Orders: ₹{totalOrdersSum.toFixed(2)}
-          </div>
-
           {!showAll && (
             <div className="flex space-x-2 mt-2">
               {renderPaginationButtons()}
