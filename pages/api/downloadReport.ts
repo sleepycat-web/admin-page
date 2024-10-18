@@ -241,65 +241,73 @@ export default async function handler(
           header: "Date",
           key: "date",
           width: 20,
-          alignment: { horizontal: "left" } as const, // Correct
+          alignment: { horizontal: "left", vertical: "top" } as const, // Correct
         },
         {
           header: "Branch",
           key: "branch",
           width: 20,
-          alignment: { horizontal: "left" } as const, // Correct
+          alignment: { horizontal: "left", vertical: "top" } as const, // Correct
         },
         {
           header: "Revenue",
           key: "revenue",
-          alignment: { horizontal: "left" } as const, // Correct
+          alignment: { horizontal: "left", vertical: "top" } as const, // Correct
         },
         {
           header: "Expenses",
           key: "expenses",
-          alignment: { horizontal: "left" } as const, // Correct
+          alignment: { horizontal: "left", vertical: "top" } as const, // Correct
         },
         {
           header: "Profit",
           key: "profit",
-          alignment: { horizontal: "left" } as const, // Correct
+          alignment: { horizontal: "left", vertical: "top" } as const, // Correct
         },
         {
           header: "Online Payments",
           key: "onlinePayments",
-          alignment: { horizontal: "left" } as const, // Correct
+          width: 10,
+
+          alignment: { horizontal: "left", vertical: "top" } as const, // Correct
         },
         {
           header: "Cash Payments",
           key: "cashPayments",
-          alignment: { horizontal: "left" } as const, // Correct
+          width: 10,
+
+          alignment: { horizontal: "left", vertical: "top" } as const, // Correct
         },
         {
           header: "Expense Details",
           key: "otherExpenses",
           width: 40,
-          alignment: { horizontal: "left" } as const, // Correct
+          alignment: { horizontal: "left", vertical: "top" } as const, // Correct
         },
       ];
 
       worksheet.columns = headers;
 
-      // Add data
-      Object.values(dailyData).forEach((day) => {
-        const row = worksheet.addRow({
-          date: day.date,
-          branch: day.branch,
-          revenue: day.revenue,
-          expenses: day.expenses,
-          profit: day.profit,
-          onlinePayments: day.onlinePayments,
-          cashPayments: day.cashPayments,
-          otherExpenses: day.otherExpenses.join(", "),
-        });
-
-        // Apply wrapText style to the "Expense Details" cell
-        // row.getCell("otherExpenses").alignment = { wrapText: true }; // Apply wrapText for specific cell
+    Object.values(dailyData).forEach((day) => {
+      const row = worksheet.addRow({
+        date: day.date,
+        branch: day.branch,
+        revenue: day.revenue,
+        expenses: day.expenses,
+        profit: day.profit,
+        onlinePayments: day.onlinePayments,
+        cashPayments: day.cashPayments,
+        otherExpenses: day.otherExpenses.join("\n"),
       });
+
+      // Align numeric cells explicitly (left aligned)
+      row.getCell("revenue").alignment = { horizontal: "left" };
+      row.getCell("expenses").alignment = { horizontal: "left" };
+      row.getCell("profit").alignment = { horizontal: "left" };
+      row.getCell("onlinePayments").alignment = { horizontal: "left" };
+      row.getCell("cashPayments").alignment = { horizontal: "left" };
+      row.getCell("otherExpenses").alignment = { wrapText: true }; // Wrap text for the expense details
+    });
 
       // Generate Excel file
       const buffer = await workbook.xlsx.writeBuffer();
