@@ -1,8 +1,7 @@
 import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CaretSortIcon } from "@radix-ui/react-icons";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+ import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import {
   ColumnDef,
   ColumnFiltersState,

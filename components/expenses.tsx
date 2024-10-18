@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { format, subHours, subMinutes } from "date-fns";
 import {
   Table,
@@ -80,50 +80,52 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
     }
   };
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [dateRange, selectedBranch, category]);
+ 
+ const fetchExpenses = useCallback(async () => {
+   setIsLoading(true);
+   try {
+     const response = await fetch("/api/expenses", {
+       method: "POST",
+       headers: {
+         "Content-Type": "application/json",
+       },
+       body: JSON.stringify({
+         branch: selectedBranch,
+         startDate: dateRange.start.toISOString(),
+         endDate: dateRange.end.toISOString(),
+         category,
+       }),
+     });
+     const data = await response.json();
+     setExpenses(data.expenses || []);
+   } catch (error) {
+     console.error("Error fetching expenses:", error);
+     setExpenses([]);
+   } finally {
+     setIsLoading(false);
+   }
+ }, [dateRange, selectedBranch, category]);
 
-  useEffect(() => {
-    filterExpenses();
-  }, [expenses, searchTerm]);
 
-  const fetchExpenses = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/expenses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          branch: selectedBranch,
-          startDate: dateRange.start.toISOString(),
-          endDate: dateRange.end.toISOString(),
-          category,
-        }),
-      });
-      const data = await response.json();
-      setExpenses(data.expenses || []);
-     } catch (error) {
-      console.error("Error fetching expenses:", error);
-      setExpenses([]);
-     } finally {
-      setIsLoading(false);
-    }
-  };
+   const filterExpenses = useCallback(() => {
+     const filtered = expenses.filter((expense) =>
+       Object.values(expense).some((value) => {
+         const stringValue = value.toString().toLowerCase();
+         const searchTerms = searchTerm.toLowerCase().split(" ");
+         return searchTerms.every((term) => stringValue.includes(term));
+       })
+     );
+     setFilteredExpenses(filtered);
+     setCurrentPage(1);
+   }, [expenses, searchTerm]);
+  
+    useEffect(() => {
+      fetchExpenses();
+    }, [fetchExpenses]);
 
-  const filterExpenses = () => {
-    const filtered = expenses.filter((expense) =>
-      Object.values(expense).some((value) => {
-        const stringValue = value.toString().toLowerCase();
-        const searchTerms = searchTerm.toLowerCase().split(" ");
-        return searchTerms.every((term) => stringValue.includes(term));
-      })
-    );
-    setFilteredExpenses(filtered);
-    setCurrentPage(1);
-  };
+    useEffect(() => {
+      filterExpenses();
+    }, [filterExpenses]);
 
   const handleSort = (column: keyof Expense) => {
     if (column === sortColumn) {

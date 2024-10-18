@@ -6,7 +6,7 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const { method } = req;
-  const { client, db } = await connectToDatabase();
+  const {  db } = await connectToDatabase();
 
   switch (method) {
     case "GET":

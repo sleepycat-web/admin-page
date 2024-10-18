@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import {
   Table,
@@ -70,131 +70,136 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
   const ordersPerPage = 30;
   const [promoCodePercentage, setPromoCodePercentage] = useState(0);
 
-  const calculatePromoCodePercentage = () => {
-   
-    const totalOrders = groupedOrders.length;
-    const ordersWithPromo = groupedOrders.filter(
-      (order) =>
-        order.appliedPromo ||
-        order.subOrders.some((subOrder) => subOrder.appliedPromo)
-    );
-    const percentage = totalOrders > 0 ? (ordersWithPromo.length / totalOrders) * 100 : 0;
-     
-    setPromoCodePercentage(percentage);
-  };
+ const calculatePromoCodePercentage = useCallback(() => {
+   const totalOrders = groupedOrders.length;
+   const ordersWithPromo = groupedOrders.filter(
+     (order) =>
+       order.appliedPromo ||
+       order.subOrders.some((subOrder) => subOrder.appliedPromo)
+   );
+   const percentage =
+     totalOrders > 0 ? (ordersWithPromo.length / totalOrders) * 100 : 0;
+   setPromoCodePercentage(percentage);
+ }, [groupedOrders]);
 
+ const calculateTotalOrdersSum = useCallback(() => {
+   const sum = groupedOrders.reduce(
+     (acc, order) =>
+       acc +
+       (order.total || 0) +
+       order.subOrders.reduce(
+         (sum, subOrder) => sum + (subOrder.total || 0),
+         0
+       ),
+     0
+   );
+   setTotalOrdersSum(sum);
+ }, [groupedOrders]);
 
   useEffect(() => {
-     calculateTotalOrdersSum();
+    calculateTotalOrdersSum();
     calculatePromoCodePercentage();
-  }, [groupedOrders]);
+  }, [groupedOrders, calculateTotalOrdersSum, calculatePromoCodePercentage]);
 
-  const calculateTotalOrdersSum = () => {
-    const sum = groupedOrders.reduce(
-      (acc, order) =>
-        acc +
-        (order.total || 0) +
-        order.subOrders.reduce(
-          (sum, subOrder) => sum + (subOrder.total || 0),
-          0
-        ),
-      0
-    );
-    setTotalOrdersSum(sum);
-  };
- 
+  
+  useEffect(() => {
+    calculateTotalOrdersSum();
+    calculatePromoCodePercentage();
+  }, [groupedOrders, calculateTotalOrdersSum, calculatePromoCodePercentage]);
 
+
+   const fetchOrders = useCallback(async () => {
+     setIsLoading(true);
+     try {
+       const response = await fetch("/api/orders", {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+         },
+         body: JSON.stringify({
+           startDate: dateRange.start,
+           endDate: dateRange.end,
+           branch: selectedBranch,
+         }),
+       });
+
+       if (response.ok) {
+         const data = await response.json();
+         setOrders(data);
+       } else {
+         console.error("Failed to fetch orders");
+       }
+     } catch (error) {
+       console.error("Error fetching orders:", error);
+     } finally {
+       setIsLoading(false);
+     }
+   }, [dateRange.start, dateRange.end, selectedBranch]);
+  
   useEffect(() => {
     fetchOrders();
-  }, [dateRange, selectedBranch]);
+  }, [fetchOrders]);
 
-  useEffect(() => {
-    filterAndSortOrders();
-  }, [orders, searchTerm, sortConfig]);
 
-  const fetchOrders = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          startDate: dateRange.start,
-          endDate: dateRange.end,
-          branch: selectedBranch,
-        }),
-      });
+const filterAndSortOrders = useCallback(() => {
+  const searchTermLower = searchTerm.toLowerCase();
+  const filtered = orders.filter((order) => {
+    const hasPromo =
+      order.appliedPromo ||
+      order.subOrders?.some((subOrder) => subOrder.appliedPromo);
+    return (
+      order.customerName.toLowerCase().includes(searchTermLower) ||
+      order.phoneNumber.includes(searchTermLower) ||
+      (order.total?.toString() || "").includes(searchTermLower) ||
+      order.status.toLowerCase().includes(searchTermLower) ||
+      format(new Date(order.createdAt), "MMMM d yyyy")
+        .toLowerCase()
+        .includes(searchTermLower) ||
+      order.selectedLocation.toLowerCase().includes(searchTermLower) ||
+      (searchTermLower === "promo" && hasPromo)
+    );
+  });
 
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(data);
+  // Group orders by customer name and date
+  const grouped = filtered.reduce<Record<string, GroupedOrder>>(
+    (acc, order) => {
+      const key = `${order.customerName}_${format(
+        new Date(order.createdAt),
+        "yyyy-MM-dd"
+      )}`;
+      if (!acc[key]) {
+        acc[key] = { ...order, subOrders: [] };
       } else {
-        console.error("Failed to fetch orders");
+        acc[key].subOrders.push(order);
       }
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return acc;
+    },
+    {}
+  );
 
- const filterAndSortOrders = () => {
-   const searchTermLower = searchTerm.toLowerCase();
-   const filtered = orders.filter((order) => {
-     const hasPromo =
-       order.appliedPromo ||
-       order.subOrders?.some((subOrder) => subOrder.appliedPromo);
-     return (
-       order.customerName.toLowerCase().includes(searchTermLower) ||
-       order.phoneNumber.includes(searchTermLower) ||
-       (order.total?.toString() || "").includes(searchTermLower) ||
-       order.status.toLowerCase().includes(searchTermLower) ||
-       format(new Date(order.createdAt), "MMMM d yyyy")
-         .toLowerCase()
-         .includes(searchTermLower) ||
-       order.selectedLocation.toLowerCase().includes(searchTermLower) ||
-       (searchTermLower === "promo" && hasPromo)
-     );
-   });
+  const groupedArray = Object.values(grouped);
 
-   // Group orders by customer name and date
-   const grouped = filtered.reduce<Record<string, GroupedOrder>>(
-     (acc, order) => {
-       const key = `${order.customerName}_${format(
-         new Date(order.createdAt),
-         "yyyy-MM-dd"
-       )}`;
-       if (!acc[key]) {
-         acc[key] = { ...order, subOrders: [] };
-       } else {
-         acc[key].subOrders.push(order);
-       }
-       return acc;
-     },
-     {}
-   );
+  groupedArray.sort((a, b) => {
+    const aValue = a[sortConfig.key];
+    const bValue = b[sortConfig.key];
 
-   const groupedArray = Object.values(grouped);
+    if (aValue === null || aValue === undefined) return 1;
+    if (bValue === null || bValue === undefined) return -1;
 
-   groupedArray.sort((a, b) => {
-     const aValue = a[sortConfig.key];
-     const bValue = b[sortConfig.key];
+    if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+    return 0;
+  });
 
-     if (aValue === null || aValue === undefined) return 1;
-     if (bValue === null || bValue === undefined) return -1;
-
-     if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-     if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-     return 0;
-   });
-
-   setGroupedOrders(groupedArray);
-   setCurrentPage(1);
- };
+  setGroupedOrders(groupedArray);
+  setCurrentPage(1);
+}, [orders, searchTerm, sortConfig]);
 
   const showBranchColumn = selectedBranch === "all";
+  
+  useEffect(() => {
+    filterAndSortOrders();
+  }, [filterAndSortOrders]);
 
   const sortOrders = (key: keyof Order) => {
     let direction: "asc" | "desc" = "asc";
