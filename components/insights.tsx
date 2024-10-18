@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2,TrendingDown,TrendingUp } from "lucide-react";
+import { Loader2, TrendingDown, TrendingUp } from "lucide-react";
+import { Button } from "./ui/button";
+import { Download } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -426,13 +428,22 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
                   dataKey="generalExpenses"
                   name="Expenses"
                   stroke="#6A8FBF"
-                  />
-                  
+                />
               </LineChart>
             </ResponsiveContainer>
           )}
         </CardContent>
       </Card>
+      <div className="flex justify-end">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="flex items-center gap-2"
+        >
+          <span>Download Report</span>
+          <Download className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 };
