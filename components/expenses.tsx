@@ -334,7 +334,7 @@ const calculateTotal = () => {
                   className="cursor-pointer"
                   onClick={() => handleSort("createdAt")}
                 >
-                  Date & Time
+                  Date 
                 </TableHead>
               </TableRow>
             </TableHeader>

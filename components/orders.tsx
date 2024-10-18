@@ -490,7 +490,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
                   <TableCell>
                     {format(
                       new Date(groupedOrder.createdAt),
-                      "MMMM d yyyy h:mm a"
+                      "MMMM d yyyy 'at' h:mm a"
                     )}
                   </TableCell>
                   <TableCell>{groupedOrder.status}</TableCell>
@@ -515,8 +515,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
       {!isLoading && (
         <div className="flex flex-col mt-4">
           <div className=" text-gray-300">
-            Promo Code Usage:{" "}
-            {promoCodePercentage.toFixed(2)}%
+            Promo Code Usage: {promoCodePercentage.toFixed(2)}%
           </div>
           <div className="font-semibold text-lg">
             Total of All Orders: ₹{totalOrdersSum.toFixed(2)}

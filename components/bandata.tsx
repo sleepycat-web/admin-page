@@ -47,7 +47,7 @@ const formatDate = (dateString: string) => {
       minute: "2-digit",
       hour12: true,
     })
-    .replace(",", " at")
+    .replace(",", " ")
     .replace("AM", "am")
     .replace("PM", "pm");
 };
@@ -200,7 +200,7 @@ function DataTableDemo() {
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Filter names..."
+          placeholder="Search"
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("name")?.setFilterValue(event.target.value)
