@@ -339,15 +339,17 @@ const cutoffDate = new Date("2024-09-21");
             ) : (
               currentUsers.map((user) => (
                 <TableRow key={user.phoneNumber} className="group ">
-                  <TableCell className="">
+                  <TableCell className="py-2">
                     <span className={user.banStatus ? "text-red-600" : ""}>
                       {user.name}
                       {user.banStatus ? " (Banned)" : ""}
                     </span>
                   </TableCell>
-                  <TableCell>{user.phoneNumber}</TableCell>
-                  <TableCell>{formatDate(user.signupDate)}</TableCell>
-                  <TableCell>
+                  <TableCell className="py-2">{user.phoneNumber}</TableCell>
+                  <TableCell className="py-2">
+                    {formatDate(user.signupDate)}
+                  </TableCell>
+                  <TableCell className="py-2">
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                       <Dialog>
                         <DialogTrigger asChild>
