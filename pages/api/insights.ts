@@ -51,6 +51,7 @@ export default async function handler(
             "Extra Cash Payment",
             "Extra UPI Payment",
             "Drawings",
+            "Opening Cash"
           ],
         },
       };

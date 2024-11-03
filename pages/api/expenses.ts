@@ -55,7 +55,7 @@ export default async function handler(
       } else {
         categoryFilter = {
           category: {
-            $nin: ["UPI Payment", "Extra UPI Payment", "Extra Cash Payment","Drawings",],
+            $nin: ["UPI Payment", "Extra UPI Payment", "Extra Cash Payment","Drawings","Opening Cash"],
           },
         };
       }
