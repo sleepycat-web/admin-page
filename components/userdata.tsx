@@ -101,6 +101,13 @@ const UserDataComp: React.FC = () => {
       const adjustedDate = new Date(date.getTime() - (5 * 60 + 30) * 60000);
 
       if (adjustedDate < cutoffDate) {
+        if (
+          adjustedDate.getFullYear() === 1970 &&
+          adjustedDate.getMonth() === 0 &&
+          adjustedDate.getDate() === 1
+        ) {
+          return ""; // Return an empty string for January 1, 1970
+        }
         return adjustedDate
           .toLocaleString("en-US", {
             day: "numeric",
@@ -350,17 +357,9 @@ const UserDataComp: React.FC = () => {
               currentUsers.map((user) => (
                 <TableRow key={user.phoneNumber} className="group ">
                   <TableCell className="py-2">
-                    <span
-                      className={
-                        user.banStatus || user.name == "Unregistered User"
-                          ? "text-red-600"
-                          : ""
-                      }
-                    >
+                    <span className={(user.banStatus || user.name== "Unregistered User") ? "text-red-600" : ""}>
                       {user.name}
-                      {user.banStatus || user.name == "Unregistered User"
-                        ? " (Banned)"
-                        : ""}
+                      {(user.banStatus || user.name== "Unregistered User")  ? " (Banned)" : ""}
                     </span>
                   </TableCell>
                   <TableCell className="py-2">{user.phoneNumber}</TableCell>

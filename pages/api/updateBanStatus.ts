@@ -83,7 +83,7 @@ export default async function handler(
                 reason: banReason,
               },
             ],
-            signupDate: currentDate,
+            signupDate: null,
           };
 
           const result = await db
@@ -101,12 +101,6 @@ export default async function handler(
               error: "Error creating new ban entry",
             });
           }
-        } else {
-          // Unban an unregistered user is not allowed
-          res.status(400).json({
-            success: false,
-            error: "Cannot unban an unregistered user",
-          });
         }
       }
     } catch (error) {
