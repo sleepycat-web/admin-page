@@ -27,11 +27,13 @@ const BanComp: React.FC = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [banReason, setBanReason] = useState<string>("");
+  const [shouldCreateBan, setShouldCreateBan] = useState<boolean>(false);
 
   const handlePhoneNumberChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "");
     setPhoneNumber(value);
     setShowErrorMessage("");
+    setShouldCreateBan(false);
   };
 
   const validatePhoneNumber = (): boolean => {
@@ -56,6 +58,7 @@ const BanComp: React.FC = () => {
           setUserData(data.userData);
         } else {
           setUserData(null);
+          setShouldCreateBan(true);
         }
         setOpenDialog(true);
       } catch (error) {
@@ -100,6 +103,46 @@ const BanComp: React.FC = () => {
       } catch (error) {
         console.error("Error updating ban status:", error);
         setShowErrorMessage("Failed to update ban status. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (shouldCreateBan) {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/updateBanStatus", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            phoneNumber,
+            newBanStatus: true,
+            banReason,
+          }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          setUserData({
+            _id: "new",
+            phoneNumber,
+            name: "Unregistered User",
+            banStatus: true,
+            banDate: new Date().toISOString(),
+            banHistory: [
+              {
+                date: new Date().toISOString(),
+                reason: banReason,
+              },
+            ],
+          });
+          setBanReason("");
+          setShouldCreateBan(false);
+        } else {
+          throw new Error("Failed to create ban entry");
+        }
+      } catch (error) {
+        console.error("Error creating ban entry:", error);
+        setShowErrorMessage("Failed to create ban entry. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -237,6 +280,36 @@ const BanComp: React.FC = () => {
             <DialogHeader>
               <DialogTitle>User Details not found</DialogTitle>
             </DialogHeader>
+            <div className="space-y-3 mt-3">
+              <div className="flex justify-between">
+                <Label htmlFor="phone" className="font-semibold">
+                  Phone
+                </Label>
+                  <Label htmlFor="phone-value">{phoneNumber}</Label>
+                  
+              </div>
+              <div>
+                <Label htmlFor="banReason" className="font-semibold">
+                  Reason for Ban
+                </Label>
+                <Textarea
+                  id="banReason"
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  placeholder="Enter reason for banning the user"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="secondary"
+                onClick={handleBanStatusChange}
+                disabled={isLoading || !banReason}
+              >
+                {isLoading ? "Banning..." : "Ban User"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         )}
       </Dialog>

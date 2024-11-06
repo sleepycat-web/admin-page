@@ -350,9 +350,17 @@ const UserDataComp: React.FC = () => {
               currentUsers.map((user) => (
                 <TableRow key={user.phoneNumber} className="group ">
                   <TableCell className="py-2">
-                    <span className={user.banStatus ? "text-red-600" : ""}>
+                    <span
+                      className={
+                        user.banStatus || user.name == "Unregistered User"
+                          ? "text-red-600"
+                          : ""
+                      }
+                    >
                       {user.name}
-                      {user.banStatus ? " (Banned)" : ""}
+                      {user.banStatus || user.name == "Unregistered User"
+                        ? " (Banned)"
+                        : ""}
                     </span>
                   </TableCell>
                   <TableCell className="py-2">{user.phoneNumber}</TableCell>

@@ -2,7 +2,6 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Document, UpdateFilter } from "mongodb";
 
-// Define the structure of your user document
 interface UserDocument extends Document {
   phoneNumber: string;
   banStatus: boolean;
@@ -23,51 +22,97 @@ export default async function handler(
       const { db } = await connectToDatabase();
 
       const currentDate = new Date();
-
       let updateOperation: UpdateFilter<UserDocument>;
 
-      if (newBanStatus) {
-        updateOperation = {
-          $set: {
+      // Check if user exists
+      const existingUser = await db
+        .collection<UserDocument>("UserData")
+        .findOne({ phoneNumber });
+
+      if (existingUser) {
+        // User exists, update ban status
+        if (newBanStatus) {
+          updateOperation = {
+            $set: {
+              banStatus: true,
+              banDate: currentDate,
+            },
+            $push: {
+              banHistory: {
+                date: currentDate,
+                reason: banReason,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              } as any,
+            },
+          };
+        } else {
+          updateOperation = {
+            $set: { banStatus: false },
+            $unset: { banDate: "" },
+          };
+        }
+
+        const result = await db
+          .collection<UserDocument>("UserData")
+          .findOneAndUpdate({ phoneNumber }, updateOperation, {
+            returnDocument: "after",
+          });
+
+        if (result) {
+          res.status(200).json({
+            success: true,
+            banHistory: result.banHistory || [],
+          });
+        } else {
+          res.status(404).json({
+            success: false,
+            error: "User not found or ban status not changed",
+          });
+        }
+      } else {
+        // User does not exist, create a new ban entry
+        if (newBanStatus) {
+          const newUserDocument: UserDocument = {
+            name: "Unregistered User",
+            phoneNumber,
             banStatus: true,
             banDate: currentDate,
-          },
-          $push: {
-            banHistory: {
-              date: currentDate,
-              reason: banReason,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any, 
-          },
-        };
-      } else {
-        updateOperation = {
-          $set: { banStatus: false },
-          $unset: { banDate: "" },
-        };
-      }
+            banHistory: [
+              {
+                date: currentDate,
+                reason: banReason,
+              },
+            ],
+            signupDate: currentDate,
+          };
 
-      const result = await db
-        .collection<UserDocument>("UserData")
-        .findOneAndUpdate({ phoneNumber }, updateOperation, {
-          returnDocument: "after",
-        });
+          const result = await db
+            .collection<UserDocument>("UserData")
+            .insertOne(newUserDocument);
 
-      if (result) {
-        res.status(200).json({
-          success: true,
-          banHistory: result.banHistory || [],
-        });
-      } else {
-        res.status(404).json({
-          success: false,
-          error: "User not found or ban status not changed",
-        });
+          if (result.acknowledged) {
+            res.status(200).json({
+              success: true,
+              banHistory: newUserDocument.banHistory,
+            });
+          } else {
+            res.status(500).json({
+              success: false,
+              error: "Error creating new ban entry",
+            });
+          }
+        } else {
+          // Unban an unregistered user is not allowed
+          res.status(400).json({
+            success: false,
+            error: "Cannot unban an unregistered user",
+          });
+        }
       }
     } catch (error) {
       res
         .status(500)
-        .json({ success: false, error: "Error updating ban status" });
+        .json({ success: false, error: "Error updating or creating ban entry" });
     }
   } else {
     res.setHeader("Allow", ["POST"]);
