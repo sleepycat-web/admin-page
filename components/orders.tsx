@@ -7,6 +7,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableCaption
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,7 +102,17 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
     calculatePromoCodePercentage();
   }, [groupedOrders, calculateTotalOrdersSum, calculatePromoCodePercentage]);
 
-  
+   const formatDateRange = () => {
+     const startDate = new Date(0);
+     if (dateRange.start.getTime() === startDate.getTime()) {
+       return `Orders till ${format(dateRange.end, "MMMM d yyyy")}`;
+     } else {
+       return `${format(dateRange.start, "MMMM d yyyy")} - ${format(
+         dateRange.end,
+         "MMMM d yyyy"
+       )}`;
+     }
+   };
   useEffect(() => {
     calculateTotalOrdersSum();
     calculatePromoCodePercentage();
@@ -519,15 +530,18 @@ const filterAndSortOrders = useCallback(() => {
       </Table>
       {!isLoading && (
         <div className="flex justify-between items-center mt-4">
-          {" "}
           <div className="flex flex-col">
             <div className=" text-gray-300">
               Promo Code Usage: {promoCodePercentage.toFixed(2)}%
             </div>
+
             <div className="font-semibold text-lg">
               Total of All Orders: ₹{totalOrdersSum.toFixed(2)}
             </div>
           </div>
+          <TableCaption >
+            {formatDateRange()}
+          </TableCaption>
           {!showAll && (
             <div className="flex space-x-2 mt-2">
               {renderPaginationButtons()}

@@ -72,7 +72,7 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
   const formatDateRange = () => {
     const startDate = new Date(0);
     if (dateRange.start.getTime() === startDate.getTime()) {
-      return `Expenses till ${format(dateRange.end, "MMMM d yyyy")}`;
+      return `Transactions till ${format(dateRange.end, "MMMM d yyyy")}`;
     } else {
       return `${format(dateRange.start, "MMMM d yyyy")} - ${format(
         dateRange.end,
@@ -316,7 +316,6 @@ const calculateTotal = () => {
       ) : (
         <div>
           <Table>
-            <TableCaption>{formatDateRange()}</TableCaption>
             <TableHeader>
               <TableRow>
                 {renderSortableHeader("category", "Category")}
@@ -346,7 +345,8 @@ const calculateTotal = () => {
           <div className="flex justify-between items-center mt-4">
             <p className="text-xl font-bold">
               Total: ₹{calculateTotal().toFixed(2)}
-            </p>{" "}
+            </p>
+            <TableCaption>{formatDateRange()}</TableCaption>
             {!showAll && (
               <div className="flex space-x-2">{renderPaginationButtons()}</div>
             )}
