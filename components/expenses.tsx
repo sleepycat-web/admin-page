@@ -45,7 +45,7 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   // const [total, setTotal] = useState(0);
-  const [category, setCategory] = useState("General");
+  const [category, setCategory] = useState("General Expenses");
   const [sortColumn, setSortColumn] = useState<keyof Expense>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +55,7 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
   const expensesPerPage = 30;
 
   const categories = [
-    "General",
+    "General Expenses",
     "Online Payments",
     "Cash Payments",
     "Extra Payments",

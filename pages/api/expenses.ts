@@ -35,7 +35,7 @@ export default async function handler(
 
       let categoryFilter = {};
 
-      if (category && category !== "General") {
+      if (category && category !== "General Expenses") {
         if (category === "Online Payments") {
           // Include both "UPI Payment" and "Extra UPI Payment"
           categoryFilter = {

@@ -286,7 +286,7 @@ const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
       <Tabs defaultValue="insights" className="w-full">
         <TabsList>
           <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
+          <TabsTrigger value="expenses">Finances</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
         </TabsList>
         <TabsContent value="insights">
