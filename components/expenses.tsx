@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { is } from "date-fns/locale";
 
 interface Expense {
   _id: string;
@@ -296,9 +297,7 @@ const calculateTotal = () => {
               {categories.map((cat, index) => (
                 <React.Fragment key={cat}>
                   <SelectItem value={cat}>{cat}</SelectItem>
-                  {(index === 3 || index === 5) && (
-                    <SelectSeparator/>
-                  )}
+                  {(index === 3 || index === 5) && <SelectSeparator />}
                 </React.Fragment>
               ))}
             </SelectContent>
@@ -309,23 +308,23 @@ const calculateTotal = () => {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center items-center h-40">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      ) : (
-        <div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {renderSortableHeader("category", "Category")}
-                {renderSortableHeader("amount", "Amount")}
-                {renderSortableHeader("comment", "Comment")}
-                {selectedBranch === "all" &&
-                  renderSortableHeader("branch", "Branch")}
-                {renderSortableHeader("createdAt", "Date")}
-              </TableRow>
-            </TableHeader>
+      <div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {renderSortableHeader("category", "Category")}
+              {renderSortableHeader("amount", "Amount")}
+              {renderSortableHeader("comment", "Comment")}
+              {selectedBranch === "all" &&
+                renderSortableHeader("branch", "Branch")}
+              {renderSortableHeader("createdAt", "Date")}
+            </TableRow>
+          </TableHeader>
+          {isLoading ? (
+            <TableCell colSpan={5} className="text-center">
+              <Loader2 className="mx-auto animate-spin" />
+            </TableCell>
+          ) :
             <TableBody>
               {currentExpenses.map((expense) => (
                 <TableRow key={expense._id}>
@@ -335,24 +334,22 @@ const calculateTotal = () => {
                   {selectedBranch === "all" && (
                     <TableCell>{expense.branch}</TableCell>
                   )}
-                  <TableCell>
-                    {formatDateWithOffset(expense.createdAt)}
-                  </TableCell>
+                  <TableCell>{formatDateWithOffset(expense.createdAt)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
-          <div className="flex justify-between items-center mt-4">
-            <p className="text-xl font-bold">
-              Total: ₹{calculateTotal().toFixed(2)}
-            </p>
-            <TableCaption>{formatDateRange()}</TableCaption>
-            {!showAll && (
-              <div className="flex space-x-2">{renderPaginationButtons()}</div>
-            )}
-          </div>
-        </div>
-      )}
+          }
+        </Table>
+        { !isLoading && (<div className="flex justify-between items-center mt-4">
+          <p className="text-xl font-bold">
+            Total: ₹{calculateTotal().toFixed(2)}
+          </p>
+          <TableCaption>{formatDateRange()}</TableCaption>
+          {!showAll && (
+            <div className="flex space-x-2">{renderPaginationButtons()}</div>
+          )}
+        </div>)}
+      </div>
     </>
   );
 };

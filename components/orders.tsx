@@ -467,11 +467,11 @@ const filterAndSortOrders = useCallback(() => {
             <TableRow>
               <TableCell
                 colSpan={showBranchColumn ? 7 : 6}
-                className="h-24 text-center"
+                className="text-center"
               >
-                <div className="flex justify-center items-center">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
+                
+                  <Loader2 className="mx-auto animate-spin" />
+                 
               </TableCell>
             </TableRow>
           ) : (
@@ -539,9 +539,7 @@ const filterAndSortOrders = useCallback(() => {
               Total of All Orders: ₹{totalOrdersSum.toFixed(2)}
             </div>
           </div>
-          <TableCaption >
-            {formatDateRange()}
-          </TableCaption>
+          <TableCaption>{formatDateRange()}</TableCaption>
           {!showAll && (
             <div className="flex space-x-2 mt-2">
               {renderPaginationButtons()}
