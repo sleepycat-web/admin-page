@@ -27,10 +27,10 @@ import OrdersComponent from "./orders";
 const Dashboard = () => {
   const today = new Date();
   const [dateRange, setDateRange] = useState({
-    start: new Date(0),
-    end: today,
+    start: new Date(today.setHours(0, 0, 0, 0)),
+    end: new Date(today.setHours(23, 59, 59, 999)),
   });
-  const [selectedDateRange, setSelectedDateRange] = useState("allTime");
+  const [selectedDateRange, setSelectedDateRange] = useState("today");
   const [selectedBranch, setSelectedBranch] = useState("all"); 
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(
@@ -197,7 +197,7 @@ const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
   return (
     <div className="p-4 space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold">Insights</h1>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
           <span className="text-sm">{getDateRangeDisplay()}</span>
