@@ -11,7 +11,9 @@ import BanComp from "./ban";
 import BanDataComp from "./bandata";
 import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
+import { IndianRupee } from "lucide-react";
 import UserDataComp from "./userdata";
+import CashBalanceComp from "./cashbalance";
 // Placeholder components for Analytics, Ban, and BanData
 const Analytics = () => (
   <div>
@@ -21,6 +23,11 @@ const Analytics = () => (
 const BanComponent = () => (
   <div>
     <BanComp />
+  </div>
+);
+const CashBalanceComponent = () => (
+  <div>
+    <CashBalanceComp />
   </div>
 );
 const BanDataComponent = () => (
@@ -44,7 +51,7 @@ const ContentWrapper: React.FC<ContentWrapperProps> = ({
   className,
 }) => <div className={className}>{children}</div>;
 
-type ComponentType = "analytics" | "ban" | "banData" |"userData";
+type ComponentType = "analytics" | "ban" | "banData" |"userData"| "cashBalance";
 
 interface NavButtonProps {
   icon: React.ReactNode;
@@ -85,6 +92,8 @@ const Sidebar = () => {
         return <BanDataComponent />;
       case "userData":
         return <UserDataComponent />;
+      case "cashBalance":
+        return <CashBalanceComponent />;
       default:
         return <Analytics />;
     }
@@ -130,6 +139,11 @@ const Sidebar = () => {
       icon: <DatabaseIcon className="h-4 w-4" />,
       label: "Ban Data",
       component: "banData",
+    },
+    {
+      icon: <IndianRupee className="h-4 w-4" />,
+      label: "Cash Balance",
+      component: "cashBalance",
     },
   ];
 

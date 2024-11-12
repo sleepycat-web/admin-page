@@ -20,8 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { is } from "date-fns/locale";
-
+ 
 interface Expense {
   _id: string;
   category: string;
@@ -98,8 +97,17 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
          category,
        }),
      });
+     // Inside fetchExpenses after setting expenses
      const data = await response.json();
-     setExpenses(data.expenses || []);
+     const filteredData = data.expenses.filter(
+       (expense: Expense) =>
+         !(
+           expense.category === "Opening Cash" &&
+           expense.comment.toLowerCase() === "ignore"
+         )
+     );
+     setExpenses(filteredData || []);
+     
    } catch (error) {
      console.error("Error fetching expenses:", error);
      setExpenses([]);

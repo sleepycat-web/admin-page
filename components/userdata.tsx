@@ -353,13 +353,27 @@ const UserDataComp: React.FC = () => {
                   <Loader2 className="mx-auto animate-spin" />
                 </TableCell>
               </TableRow>
+            ) : currentUsers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
             ) : (
               currentUsers.map((user) => (
                 <TableRow key={user.phoneNumber} className="group ">
                   <TableCell className="py-2">
-                    <span className={(user.banStatus || user.name== "Unregistered User") ? "text-red-600" : ""}>
+                    <span
+                      className={
+                        user.banStatus || user.name == "Unregistered User"
+                          ? "text-red-600"
+                          : ""
+                      }
+                    >
                       {user.name}
-                      {(user.banStatus || user.name== "Unregistered User")  ? " (Banned)" : ""}
+                      {user.banStatus || user.name == "Unregistered User"
+                        ? " (Banned)"
+                        : ""}
                     </span>
                   </TableCell>
                   <TableCell className="py-2">{user.phoneNumber}</TableCell>
