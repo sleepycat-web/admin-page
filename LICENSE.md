@@ -1,4 +1,4 @@
-Copyright (c) 2024 Axon Studio
+Copyright (c) 2024 sleepycat-web
 
 This work is provided for reference and educational purposes only.
 
