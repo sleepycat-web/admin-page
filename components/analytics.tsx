@@ -1,12 +1,12 @@
-import React, { useState,   } from "react";
- import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectSeparator
+  SelectSeparator,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon, X } from "lucide-react";
 import { format } from "date-fns";
 import InsightsComponent from "./insights";
- import { DateRange } from "react-day-picker";
+import { DateRange } from "react-day-picker";
 import ExpensesComponent from "./expenses";
 import OrdersComponent from "./orders";
 // These would be separate components in real implementation
@@ -31,135 +31,145 @@ const Dashboard = () => {
     end: new Date(today.setHours(23, 59, 59, 999)),
   });
   const [selectedDateRange, setSelectedDateRange] = useState("today");
-  const [selectedBranch, setSelectedBranch] = useState("all"); 
+  const [selectedBranch, setSelectedBranch] = useState("all");
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(
     undefined
   );
-   
- 
- 
-const handleDateReset = () => {
-  setCustomDateRange(undefined);
-};
 
-const handleDateRangeChange = (value: string) => {
-  setSelectedDateRange(value);
-  const now = new Date();
-  let start = new Date();
-  let end = new Date();
+  const addTime = (date: Date) => {
+    const newDate = new Date(date);
+    newDate.setHours(newDate.getHours() + 5);
+    newDate.setMinutes(newDate.getMinutes() + 30);
+    return newDate;
+  };
 
-  switch (value) {
-    case "today":
-      // Today: 00:00 AM to 11:59 PM
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      break;
+  const handleDateReset = () => {
+    setCustomDateRange(undefined);
+  };
 
-    case "yesterday":
-      // Yesterday: 00:00 AM to 11:59 PM
-      start = new Date(now);
-      start.setDate(start.getDate() - 1);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(start);
-      end.setHours(23, 59, 59, 999);
-      break;
+  const handleDateRangeChange = (value: string) => {
+    setSelectedDateRange(value);
+    const now = new Date();
+    let start = new Date();
+    let end = new Date();
 
-    case "thisWeek":
-      // This week: From Monday to today
-      start = new Date(now);
-      const dayOfWeek = start.getDay();
-      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Adjust for Monday
-      start.setDate(start.getDate() + mondayOffset);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      break;
+    switch (value) {
+      case "today":
+        // Today: 00:00 AM to 11:59 PM
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        break;
 
-    case "previousWeek":
-      // Previous week: Monday to Sunday
-      start = new Date(now);
-      const lastSundayOffset = start.getDay() === 0 ? -7 : -start.getDay();
-      end.setDate(end.getDate() + lastSundayOffset);
-      end.setHours(23, 59, 59, 999);
+      case "yesterday":
+        // Yesterday: 00:00 AM to 11:59 PM
+        start = new Date(now);
+        start.setDate(start.getDate() - 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(start);
+        end.setHours(23, 59, 59, 999);
+        break;
 
-      start = new Date(end);
-      start.setDate(start.getDate() - 6); // Previous Monday
-      start.setHours(0, 0, 0, 0);
-      break;
+      case "thisWeek":
+        // This week: From Monday to today
+        start = new Date(now);
+        const dayOfWeek = start.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Adjust for Monday
+        start.setDate(start.getDate() + mondayOffset);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        break;
 
-    case "thisMonth":
-      // This month: From 1st to today
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      break;
+      case "previousWeek":
+        // Previous week: Monday to Sunday
+        start = new Date(now);
+        const lastSundayOffset = start.getDay() === 0 ? -7 : -start.getDay();
+        end.setDate(end.getDate() + lastSundayOffset);
+        end.setHours(23, 59, 59, 999);
 
-    case "previousMonth":
-      // Previous month: From 1st to last day of the previous month
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      end = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      break;
+        start = new Date(end);
+        start.setDate(start.getDate() - 6); // Previous Monday
+        start.setHours(0, 0, 0, 0);
+        break;
 
-    case "thisYear":
-      // This year: From 1st January to today
-      start = new Date(now.getFullYear(), 0, 1);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      break;
+      case "thisMonth":
+        // This month: From 1st to today
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        break;
 
-    case "previousYear":
-      // Previous year: From 1st January to 31st December of the previous year
-      start = new Date(now.getFullYear() - 1, 0, 1);
-      end = new Date(now.getFullYear() - 1, 11, 31);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      break;
+      case "previousMonth":
+        // Previous month: From 1st to last day of the previous month
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        break;
 
-    case "allTime":
-      start = new Date(0); // Beginning of time (1970)
-      end = new Date();
-      end.setHours(23, 59, 59, 999);
-      break;
+      case "thisYear":
+        // This year: From 1st January to today
+        start = new Date(now.getFullYear(), 0, 1);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        break;
 
-    case "custom":
-       return; // Don't update dateRange for custom selection
-  }
+      case "previousYear":
+        // Previous year: From 1st January to 31st December of the previous year
+        start = new Date(now.getFullYear() - 1, 0, 1);
+        end = new Date(now.getFullYear() - 1, 11, 31);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        break;
 
-  setDateRange({ start, end });
-  setCustomDateRange(undefined);
-  setIsCalendarOpen(false);
-};
+      case "allTime":
+        start = new Date(0); // Beginning of time (1970)
+        end = new Date();
+        end.setHours(23, 59, 59, 999);
+        break;
+
+      case "custom":
+        return; // Don't update dateRange for custom selection
+    }
+
+    setDateRange({
+      start: addTime(start),
+      end: addTime(end),
+    });
+    setCustomDateRange(undefined);
+    setIsCalendarOpen(false);
+  };
 
   const handleBranchChange = (value: string) => {
     setSelectedBranch(value);
   };
 
-const handleCustomDateSelect = (range: DateRange | undefined) => {
-  if (range?.from) {
-    let start = range.from;
-    let end = range.to || range.from;
+  const handleCustomDateSelect = (range: DateRange | undefined) => {
+    if (range?.from) {
+      let start = range.from;
+      let end = range.to || range.from;
 
-    // Ensure start is always before or equal to end
-    if (end < start) {
-      [start, end] = [end, start];
+      // Ensure start is always before or equal to end
+      if (end < start) {
+        [start, end] = [end, start];
+      }
+
+      setDateRange({
+        start: addTime(start),
+        end: addTime(end),
+      });
+      setCustomDateRange({ from: start, to: end });
+      setSelectedDateRange("custom");
     }
+  };
 
-    setDateRange({ start, end });
-    setCustomDateRange({ from: start, to: end });
-    setSelectedDateRange("custom");
-  }
-};
-
-const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
-  if (modifiers.double) {
-    const newRange = { from: day, to: day };
-    handleCustomDateSelect(newRange);
-    setIsCalendarOpen(false);
-  }
-};
-
+  const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
+    if (modifiers.double) {
+      const newRange = { from: day, to: day };
+      handleCustomDateSelect(newRange);
+      setIsCalendarOpen(false);
+    }
+  };
 
   const getDateRangeDisplay = () => {
     if (selectedDateRange === "custom" && customDateRange?.from) {
@@ -180,19 +190,6 @@ const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
       )}`;
     }
   };
-
-  // const getGrowthDisplay = (value: number | null, label: string) => {
-  //   if (value === null) {
-  //     return <p className="text-xs">Growth data unavailable</p>;
-  //   }
-  //   const color = value >= 0 ? "text-green-600" : "text-red-600";
-  //   return (
-  //     <p className={`text-xs ${color}`}>
-  //       {value.toFixed(2)}% {value >= 0 ? "growth" : "decline"} in {label} from
-  //       previous period
-  //     </p>
-  //   );
-  // };
 
   return (
     <div className="p-4 space-y-4">
