@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
- 
+
 interface Expense {
   _id: string;
   category: string;
@@ -81,61 +81,61 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
     }
   };
 
- 
- const fetchExpenses = useCallback(async () => {
-   setIsLoading(true);
-   try {
-     const response = await fetch("/api/expenses", {
-       method: "POST",
-       headers: {
-         "Content-Type": "application/json",
-       },
-       body: JSON.stringify({
-         branch: selectedBranch,
-         startDate: dateRange.start.toISOString(),
-         endDate: dateRange.end.toISOString(),
-         category,
-       }),
-     });
-     // Inside fetchExpenses after setting expenses
-     const data = await response.json();
-     const filteredData = data.expenses.filter(
-       (expense: Expense) =>
-         !(
-           expense.category === "Opening Cash" &&
-           expense.comment.toLowerCase() === "ignore"
-         )
-     );
-     setExpenses(filteredData || []);
-     
-   } catch (error) {
-     console.error("Error fetching expenses:", error);
-     setExpenses([]);
-   } finally {
-     setIsLoading(false);
-   }
- }, [dateRange, selectedBranch, category]);
+
+  const fetchExpenses = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/expenses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          branch: selectedBranch,
+          startDate: dateRange.start.toISOString(),
+          endDate: dateRange.end.toISOString(),
+          category,
+        }),
+      });
+      // Inside fetchExpenses after setting expenses
+      const data = await response.json();
+      const filteredData = data.expenses.filter(
+        (expense: Expense) =>
+          !(
+            expense.category === "Opening Cash" &&
+            expense.comment.toLowerCase() === "ignore"
+          )
+      );
+      setExpenses(filteredData || []);
+
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+      setExpenses([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [dateRange, selectedBranch, category]);
 
 
-   const filterExpenses = useCallback(() => {
-     const filtered = expenses.filter((expense) =>
-       Object.values(expense).some((value) => {
-         const stringValue = value.toString().toLowerCase();
-         const searchTerms = searchTerm.toLowerCase().split(" ");
-         return searchTerms.every((term) => stringValue.includes(term));
-       })
-     );
-     setFilteredExpenses(filtered);
-     setCurrentPage(1);
-   }, [expenses, searchTerm]);
-  
-    useEffect(() => {
-      fetchExpenses();
-    }, [fetchExpenses]);
+  const filterExpenses = useCallback(() => {
+    const filtered = expenses.filter((expense) =>
+      Object.values(expense).some((value) => {
+        const stringValue = value.toString().toLowerCase();
+        const searchTerms = searchTerm.toLowerCase().split(" ");
+        return searchTerms.every((term) => stringValue.includes(term));
+      })
+    );
+    setFilteredExpenses(filtered);
+    setCurrentPage(1);
+  }, [expenses, searchTerm]);
 
-    useEffect(() => {
-      filterExpenses();
-    }, [filterExpenses]);
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
+
+  useEffect(() => {
+    filterExpenses();
+  }, [filterExpenses]);
 
   const handleSort = (column: keyof Expense) => {
     if (column === sortColumn) {
@@ -181,15 +181,15 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
     indexOfFirstExpense,
     indexOfLastExpense
   );
-const calculateTotal = () => {
-  if (searchTerm) {
-    // If there's a search term, calculate total only for displayed expenses
-    return currentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  } else {
-    // If no search term, calculate total for all filtered expenses
-    return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  }
-};
+  const calculateTotal = () => {
+    if (searchTerm) {
+      // If there's a search term, calculate total only for displayed expenses
+      return currentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    } else {
+      // If no search term, calculate total for all filtered expenses
+      return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    }
+  };
   const totalPages = Math.ceil(sortedExpenses.length / expensesPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
@@ -275,17 +275,17 @@ const calculateTotal = () => {
 
     return buttons;
   };
- const renderSortableHeader = (column: keyof Expense, label: string) => (
-   <TableHead>
-     <Button
-       variant="ghost"
-       onClick={() => handleSort(column)}
-       className="w-full justify-start"
-     >
-       {label} {sortColumn === column && (sortDirection === "asc" ? "↑" : "↓")}
-     </Button>
-   </TableHead>
- );
+  const renderSortableHeader = (column: keyof Expense, label: string) => (
+    <TableHead>
+      <Button
+        variant="ghost"
+        onClick={() => handleSort(column)}
+        className="w-full justify-start"
+      >
+        {label} {sortColumn === column && (sortDirection === "asc" ? "↑" : "↓")}
+      </Button>
+    </TableHead>
+  );
   return (
     <>
       <div className="mb-4">
@@ -348,7 +348,7 @@ const calculateTotal = () => {
             </TableBody>
           }
         </Table>
-        { !isLoading && (<div className="flex justify-between items-center mt-4">
+        {!isLoading && (<div className="flex justify-between items-center mt-4">
           <p className="text-xl font-bold">
             Total: ₹{calculateTotal().toFixed(2)}
           </p>
