@@ -14,6 +14,7 @@ interface OrderQuery {
     $gte: Date;
     $lt: Date;
   };
+  status: string;
 }
 
 export default async function handler(
@@ -33,10 +34,11 @@ export default async function handler(
       const endDateTime = new Date(endDate);
       endDateTime.setDate(endDateTime.getDate() + 1); // Add one day
       endDateTime.setHours(5, 29, 59, 999); // Set to 5:29:59.999 AM
- 
+
       // Prepare queries
       const orderQuery: OrderQuery = {
         createdAt: { $gte: startDateTime, $lt: endDateTime },
+        status: "fulfilled",
       };
 
       const extraQuery = {
@@ -51,7 +53,7 @@ export default async function handler(
             "Extra Cash Payment",
             "Extra UPI Payment",
             "Drawings",
-            "Opening Cash"
+            "Opening Cash",
           ],
         },
       };
@@ -65,6 +67,7 @@ export default async function handler(
       }
 
       // Fetch orders
+      // Update the orders aggregation pipeline
       const orderPromises = orderCollections.map((collection) =>
         db
           .collection(collection)
@@ -95,33 +98,33 @@ export default async function handler(
       );
 
       // Fetch extra payments
-     const extraPaymentsPromises = expenseCollections.map((collection) =>
-       db
-         .collection(collection)
-         .aggregate([
-           {
-             $match: extraQuery,
-           },
-           {
-             $group: {
-               _id: {
-                 $dateToString: {
-                   format: "%Y-%m-%d",
-                   date: {
-                     $subtract: [
-                       "$createdAt",
-                       5.5 * 60 * 60 * 1000, // Subtract 5 hours and 30 minutes
-                     ],
-                   },
-                   timezone: "+00:00", // Use UTC
-                 },
-               },
-               extraPayments: { $sum: "$amount" },
-             },
-           },
-         ])
-         .toArray()
-     );
+      const extraPaymentsPromises = expenseCollections.map((collection) =>
+        db
+          .collection(collection)
+          .aggregate([
+            {
+              $match: extraQuery,
+            },
+            {
+              $group: {
+                _id: {
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: {
+                      $subtract: [
+                        "$createdAt",
+                        5.5 * 60 * 60 * 1000, // Subtract 5 hours and 30 minutes
+                      ],
+                    },
+                    timezone: "+00:00", // Use UTC
+                  },
+                },
+                extraPayments: { $sum: "$amount" },
+              },
+            },
+          ])
+          .toArray()
+      );
 
       // Fetch expenses
       const expensesPromises = expenseCollections.map((collection) =>
@@ -141,7 +144,6 @@ export default async function handler(
       const extraPayments = extraPaymentsArrays.flat();
       const expenses = expensesArrays.flat();
 
-  
       // Process data day by day
       const dailyStats: { [key: string]: DailyStats } = {};
       const dateRange = getDateRange(startDateTime, endDateTime);
