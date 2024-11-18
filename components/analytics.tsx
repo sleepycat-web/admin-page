@@ -22,6 +22,9 @@ import InsightsComponent from "./insights";
 import { DateRange } from "react-day-picker";
 import ExpensesComponent from "./expenses";
 import OrdersComponent from "./orders";
+import { zonedTimeToUtc } from 'date-fns-tz';
+
+const timeZone = 'Asia/Kolkata';
 // These would be separate components in real implementation
 
 const Dashboard = () => {
@@ -37,12 +40,7 @@ const Dashboard = () => {
     undefined
   );
 
-  const addTime = (date: Date) => {
-    const newDate = new Date(date);
-    newDate.setHours(newDate.getHours() + 5);
-    newDate.setMinutes(newDate.getMinutes() + 30);
-    return newDate;
-  };
+  
 
   const handleDateReset = () => {
     setCustomDateRange(undefined);
@@ -131,11 +129,16 @@ const Dashboard = () => {
       case "custom":
         return; // Don't update dateRange for custom selection
     }
-
+const utcStartDate = zonedTimeToUtc(start, timeZone);
+const utcEndDate = zonedTimeToUtc(end, timeZone);
+    
     setDateRange({
-      start: addTime(start),
-      end: addTime(end),
+      start: utcStartDate,
+      end: utcEndDate,
     });
+
+     
+    // Send utcStartDate and utcEndDate to the server
     setCustomDateRange(undefined);
     setIsCalendarOpen(false);
   };
@@ -153,11 +156,13 @@ const Dashboard = () => {
       if (end < start) {
         [start, end] = [end, start];
       }
-
-      setDateRange({
-        start: addTime(start),
-        end: addTime(end),
-      });
+      const utcStartDate = zonedTimeToUtc(start, timeZone);
+      const utcEndDate = zonedTimeToUtc(end, timeZone);
+  
+ setDateRange({
+   start: utcStartDate,
+   end: utcEndDate,
+ });
       setCustomDateRange({ from: start, to: end });
       setSelectedDateRange("custom");
     }
