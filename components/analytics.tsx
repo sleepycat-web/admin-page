@@ -205,8 +205,7 @@ const handleDayClick = (day: Date, modifiers: Record<string, unknown>) => {
   //   );
   // };
 
-  console.log(dateRange);
-  return (
+   return (
     <div className="p-4 space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
         <h1 className="text-3xl font-bold">Insights</h1>
