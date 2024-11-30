@@ -66,6 +66,7 @@ const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [mountedComponents, setMountedComponents] = useState<{ [key in ComponentType]?: React.ReactNode }>({});
+  const [mountKey, setMountKey] = useState(0);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -81,6 +82,15 @@ const Sidebar = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMountKey((prev) => prev + 1);
+      setMountedComponents({});
+    }, 300000); // 5 minutes
+
+    return () => clearInterval(interval);
   }, []);
 
   const NavButton: React.FC<NavButtonProps> = ({
@@ -232,7 +242,7 @@ const Sidebar = () => {
         </div>
 
         {/* Main content */}
-        <ContentWrapper className="flex-1 p-4">
+        <ContentWrapper key={mountKey} className="flex-1 p-4">
           {/* Display mounted components and control visibility */}
           {Object.entries(mountedComponents).map(([key, component]) => (
             <div
@@ -246,7 +256,7 @@ const Sidebar = () => {
       </div>
 
       {/* Main content for mobile */}
-      <ContentWrapper className="md:hidden flex-1 p-4">
+      <ContentWrapper key={mountKey} className="md:hidden flex-1 p-4">
         {/* Display mounted components and control visibility */}
         {Object.entries(mountedComponents).map(([key, component]) => (
           <div
