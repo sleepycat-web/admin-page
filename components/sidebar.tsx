@@ -65,6 +65,7 @@ const Sidebar = () => {
     useState<ComponentType>("analytics");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const [mountedComponents, setMountedComponents] = useState<{ [key in ComponentType]?: React.ReactNode }>({});
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -81,23 +82,6 @@ const Sidebar = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  const renderComponent = () => {
-    switch (activeComponent) {
-      case "analytics":
-        return <Analytics />;
-      case "ban":
-        return <BanComponent />;
-      case "banData":
-        return <BanDataComponent />;
-      case "userData":
-        return <UserDataComponent />;
-      case "cashBalance":
-        return <CashBalanceComponent />;
-      default:
-        return <Analytics />;
-    }
-  };
 
   const NavButton: React.FC<NavButtonProps> = ({
     icon,
@@ -152,6 +136,39 @@ const Sidebar = () => {
       navItems.find((item) => item.component === activeComponent)?.label || ""
     );
   };
+
+  const renderComponent = () => {
+    if (mountedComponents[activeComponent]) {
+      return;
+    }
+
+    let component: React.ReactNode = null;
+    switch (activeComponent) {
+      case "analytics":
+        component = <Analytics />;
+        break;
+      case "ban":
+        component = <BanComponent />;
+        break;
+      case "banData":
+        component = <BanDataComponent />;
+        break;
+      case "userData":
+        component = <UserDataComponent />;
+        break;
+      case "cashBalance":
+        component = <CashBalanceComponent />;
+        break;
+      default:
+        component = <Analytics />;
+    }
+
+    setMountedComponents((prev) => ({ ...prev, [activeComponent]: component }));
+  };
+
+  useEffect(() => {
+    renderComponent();
+  }, [activeComponent]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -216,13 +233,29 @@ const Sidebar = () => {
 
         {/* Main content */}
         <ContentWrapper className="flex-1 p-4">
-          {renderComponent()}
+          {/* Display mounted components and control visibility */}
+          {Object.entries(mountedComponents).map(([key, component]) => (
+            <div
+              key={key}
+              style={{ display: activeComponent === key ? "block" : "none" }}
+            >
+              {component}
+            </div>
+          ))}
         </ContentWrapper>
       </div>
 
       {/* Main content for mobile */}
       <ContentWrapper className="md:hidden flex-1 p-4">
-        {renderComponent()}
+        {/* Display mounted components and control visibility */}
+        {Object.entries(mountedComponents).map(([key, component]) => (
+          <div
+            key={key}
+            style={{ display: activeComponent === key ? "block" : "none" }}
+          >
+            {component}
+          </div>
+        ))}
       </ContentWrapper>
     </div>
   );
