@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import {
   Select,
@@ -39,7 +39,10 @@ const CashBalanceComp = () => {
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] =
     useState<string>("All Branches");
-const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(30);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     const fetchBalances = async () => {
@@ -82,8 +85,6 @@ const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   const locations = ["All Branches", "Sevoke Road", "Dagapur"];
 
- 
-
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     const options: Intl.DateTimeFormatOptions = {
@@ -101,10 +102,10 @@ const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
       .replace(/am|pm/i, (match) => match.toUpperCase());
   };
 
-  
-const handleSort = () => {
-  setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    };
+  const handleSort = () => {
+    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+  };
+
   const sortedCashBalanceDetails = useMemo(() => {
     return cashBalanceDetails
       .filter(
@@ -119,18 +120,107 @@ const handleSort = () => {
       });
   }, [cashBalanceDetails, selectedLocation, sortDirection]);
 
-    
- const renderSortableHeader = () => (
-   <TableHead>
-     <Button
-       variant="ghost"
-       onClick={handleSort}
-       className="w-full justify-start"
-     >
-       Date {sortDirection === "asc" ? "↑" : "↓"}
-     </Button>
-   </TableHead>
- );   
+  const indexOfLastItem = showAll
+    ? sortedCashBalanceDetails.length
+    : currentPage * itemsPerPage;
+  const indexOfFirstItem = showAll ? 0 : indexOfLastItem - itemsPerPage;
+  const currentItems = sortedCashBalanceDetails.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+  const totalPages = Math.ceil(sortedCashBalanceDetails.length / itemsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const maxVisiblePages = 5;
+
+    buttons.push(
+      <Button
+        key="prev"
+        onClick={() => paginate(currentPage - 1)}
+        disabled={currentPage === 1}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+    );
+
+    for (let i = 1; i <= Math.min(maxVisiblePages, totalPages); i++) {
+      buttons.push(
+        <Button
+          key={i}
+          onClick={() => paginate(i)}
+          variant={currentPage === i ? "default" : "outline"}
+        >
+          {i}
+        </Button>
+      );
+    }
+
+    if (totalPages > maxVisiblePages) {
+      buttons.push(<span key="ellipsis">...</span>);
+
+      if (currentPage > maxVisiblePages && currentPage < totalPages - 1) {
+        buttons.push(
+          <Button
+            key={currentPage}
+            onClick={() => paginate(currentPage)}
+            variant="default"
+          >
+            {currentPage}
+          </Button>
+        );
+      }
+
+      if (totalPages - 1 > maxVisiblePages) {
+        buttons.push(
+          <Button
+            key={totalPages - 1}
+            onClick={() => paginate(totalPages - 1)}
+            variant={currentPage === totalPages - 1 ? "default" : "outline"}
+          >
+            {totalPages - 1}
+          </Button>
+        );
+      }
+
+      buttons.push(
+        <Button
+          key={totalPages}
+          onClick={() => paginate(totalPages)}
+          variant={currentPage === totalPages ? "default" : "outline"}
+        >
+          {totalPages}
+        </Button>
+      );
+    }
+
+    buttons.push(
+      <Button
+        key="next"
+        onClick={() => paginate(currentPage + 1)}
+        disabled={currentPage === totalPages}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    );
+
+    return buttons;
+  };
+
+  const renderSortableHeader = () => (
+    <TableHead>
+      <Button
+        variant="ghost"
+        onClick={handleSort}
+        className="w-full justify-start"
+      >
+        Date {sortDirection === "asc" ? "↑" : "↓"}
+      </Button>
+    </TableHead>
+  );
+
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold md:block hidden">Cash Balance</h1>
@@ -194,6 +284,9 @@ const handleSort = () => {
               ))}
             </SelectContent>
           </Select>
+          <Button onClick={() => setShowAll(!showAll)} variant="outline">
+            {showAll ? "Show Paginated" : "Show All"}
+          </Button>
         </div>
         <Table className="mt-4">
           <TableHeader>
@@ -216,8 +309,14 @@ const handleSort = () => {
                   Error fetching cash balance details: {errorDetails}
                 </TableCell>
               </TableRow>
+            ) : currentItems.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
             ) : (
-              sortedCashBalanceDetails.map((detail) => (
+              currentItems.map((detail) => (
                 <TableRow key={detail.id}>
                   <TableCell>{detail.location}</TableCell>
                   <TableCell>
@@ -254,6 +353,11 @@ const handleSort = () => {
             )}
           </TableBody>
         </Table>
+        {!loadingDetails && !showAll && sortedCashBalanceDetails.length > 0 && (
+          <div className="flex justify-end mt-4">
+            <div className="flex space-x-2">{renderPaginationButtons()}</div>
+          </div>
+        )}
       </div>
     </div>
   );
