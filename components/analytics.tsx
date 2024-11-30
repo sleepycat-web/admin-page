@@ -27,8 +27,8 @@ import OrdersComponent from "./orders";
 const Dashboard = () => {
   const today = new Date();
   const [dateRange, setDateRange] = useState({
-    start: new Date(today.setHours(0, 0, 0, 0)),
-    end: new Date(today.setHours(23, 59, 59, 999)),
+    start: new Date(today.setHours(0, 0, 0, 0) + 5.5 * 60 * 60 * 1000),
+    end: new Date(today.setHours(23, 59, 59, 999) + 5.5 * 60 * 60 * 1000),
   });
   const [selectedDateRange, setSelectedDateRange] = useState("today");
   const [selectedBranch, setSelectedBranch] = useState("all"); 
@@ -48,6 +48,11 @@ const handleDateRangeChange = (value: string) => {
   const now = new Date();
   let start = new Date();
   let end = new Date();
+
+  // Add 5.5 hours to now, start, and end
+  now.setTime(now.getTime() + 5.5 * 60 * 60 * 1000);
+  start.setTime(start.getTime() + 5.5 * 60 * 60 * 1000);
+  end.setTime(end.getTime() + 5.5 * 60 * 60 * 1000);
 
   switch (value) {
     case "today":
@@ -127,6 +132,10 @@ const handleDateRangeChange = (value: string) => {
        return; // Don't update dateRange for custom selection
   }
 
+  // Add 5.5 hours to start and end
+  start.setTime(start.getTime() + 5.5 * 60 * 60 * 1000);
+  end.setTime(end.getTime() + 5.5 * 60 * 60 * 1000);
+
   setDateRange({ start, end });
   setCustomDateRange(undefined);
   setIsCalendarOpen(false);
@@ -138,8 +147,10 @@ const handleDateRangeChange = (value: string) => {
 
 const handleCustomDateSelect = (range: DateRange | undefined) => {
   if (range?.from) {
-    let start = range.from;
-    let end = range.to || range.from;
+    let start = new Date(range.from.getTime() + 5.5 * 60 * 60 * 1000);
+    let end = new Date(
+      (range.to || range.from).getTime() + 5.5 * 60 * 60 * 1000
+    );
 
     // Ensure start is always before or equal to end
     if (end < start) {
