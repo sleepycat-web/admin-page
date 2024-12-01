@@ -5,7 +5,8 @@ interface ResponseData {
   revenue: number;
   orders: number;
   expenses: number;
-   profit: number;  // Add this line
+  profit: number;
+  online: number;  // Changed from upiPayment to online
 }
 
 export default async function handler(
@@ -164,6 +165,35 @@ export default async function handler(
       };
     };
 
+    // Add this new function
+    const getUPIPaymentTotals = async (
+      periodStart: Date,
+      periodEnd: Date,
+      collections: { expenses: string }[]
+    ) => {
+      const dateQuery = { createdAt: { $gte: periodStart, $lt: periodEnd } };
+      let totalUPIPayment = 0;
+
+      for (const { expenses: expenseCollection } of collections) {
+        const upiPaymentResult = await db
+          .collection(expenseCollection)
+          .aggregate([
+            {
+              $match: {
+                ...dateQuery,
+                category: "UPI Payment",
+              },
+            },
+            { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+          ])
+          .toArray();
+
+        totalUPIPayment += upiPaymentResult[0]?.totalAmount || 0;
+      }
+
+      return totalUPIPayment;
+    };
+
     const currentTotals = await getTotals(
       startDateTime,
       endDateTime,
@@ -175,10 +205,25 @@ export default async function handler(
       collections
     );
 
-    const calculateGrowth = (current: number, previous: number): number => {
-      if (previous === 0) return current;
-      return ((current - previous) / previous) * 100;
+    const currentOnlineTotal = await getUPIPaymentTotals(
+      startDateTime,
+      endDateTime,
+      collections
+    );
+    const previousOnlineTotal = await getUPIPaymentTotals(
+      previousStart,
+      previousEnd,
+      collections
+    );
+  const calculateGrowth = (current: number, previous: number): number => {
+    if (previous === 0) return current;
+    return ((current - previous) / previous) * 100;
     };
+        const onlineGrowth = calculateGrowth(
+          currentOnlineTotal,
+          previousOnlineTotal
+        );
+
 
      const result: ResponseData = {
        revenue: calculateGrowth(currentTotals.revenue, previousTotals.revenue),
@@ -188,10 +233,11 @@ export default async function handler(
          previousTotals.expenses
        ),
        profit: calculateGrowth(currentTotals.profit, previousTotals.profit), // Add this line
+       online: onlineGrowth,  // Changed from upiPaymentGrowth to onlineGrowth
      };
 
     res.status(200).json(result);
    } catch (error) {
-    res.status(500).json({ revenue: 0, orders: 0, expenses: 0 , profit: 0 });
+    res.status(500).json({ revenue: 0, orders: 0, expenses: 0 , profit: 0, online: 0 });
   }
 }

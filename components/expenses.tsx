@@ -165,9 +165,12 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
     return 0;
   });
 
-  const formatDateWithOffset = (dateString: string) => {
+  const formatDateWithOffset = (dateString: string, category: string) => {
     const date = new Date(dateString);
-    const offsetDate = subMinutes(subHours(date, 5), 30);
+    let offsetDate = date;
+    if (category !== "UPI Payment") {
+      offsetDate = subMinutes(subHours(date, 5), 30);
+    }
     return format(offsetDate, "MMMM d yyyy 'at' h:mm a");
   };
 
@@ -342,7 +345,9 @@ const ExpensesComponent: React.FC<ExpensesComponentProps> = ({
                   {selectedBranch === "all" && (
                     <TableCell>{expense.branch}</TableCell>
                   )}
-                  <TableCell>{formatDateWithOffset(expense.createdAt)}</TableCell>
+                  <TableCell>
+                    {formatDateWithOffset(expense.createdAt, expense.category)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

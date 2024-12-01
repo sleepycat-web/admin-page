@@ -7,6 +7,7 @@ interface DailyStats {
   generalExpenses: number;
   revenue: number;
   profit: number;
+  online?: number;  // Changed from upiPayment to online
 }
 
 interface OrderQuery {
@@ -56,6 +57,12 @@ export default async function handler(
             "Opening Cash",
           ],
         },
+      };
+
+      // Replace occurrences of upiPaymentQuery with onlinePaymentQuery
+      const onlinePaymentQuery = {
+        createdAt: { $gte: startDateTime, $lt: endDateTime },
+        category: "UPI Payment",
       };
 
       // Determine collections based on branch
@@ -131,18 +138,47 @@ export default async function handler(
         db.collection(collection).find(expenseQuery).toArray()
       );
 
+      // Fetch online Payment expenses
+      const onlinePaymentsPromises = expenseCollections.map((collection) =>
+        db
+          .collection(collection)
+          .aggregate([
+            { $match: onlinePaymentQuery },
+            {
+              $group: {
+                _id: {
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: {
+                      $subtract: [
+                        "$createdAt",
+                        5.5 * 60 * 60 * 1000, // Subtract 5 hours and 30 minutes
+                      ],
+                    },
+                    timezone: "+00:00", // Use UTC
+                  },
+                },
+                totalOnlinePayment: { $sum: "$amount" },
+              },
+            },
+          ])
+          .toArray()
+      );
+
       // Wait for all promises to resolve
-      const [ordersArrays, extraPaymentsArrays, expensesArrays] =
+      const [ordersArrays, extraPaymentsArrays, expensesArrays, onlinePaymentsArrays] =
         await Promise.all([
           Promise.all(orderPromises),
           Promise.all(extraPaymentsPromises),
           Promise.all(expensesPromises),
+          Promise.all(onlinePaymentsPromises),  // Changed from upiPaymentsPromises
         ]);
 
       // Flatten the results
       const orders = ordersArrays.flat();
       const extraPayments = extraPaymentsArrays.flat();
       const expenses = expensesArrays.flat();
+      const onlinePayments = onlinePaymentsArrays.flat();
 
       // Process data day by day
       const dailyStats: { [key: string]: DailyStats } = {};
@@ -189,6 +225,14 @@ export default async function handler(
         if (dailyStats[dateStr]) {
           dailyStats[dateStr].generalExpenses += expense.amount;
           dailyStats[dateStr].profit -= expense.amount;
+        }
+      });
+
+      // Process online payment data
+      onlinePayments.forEach((payment) => {
+        const dateStr = payment._id;
+        if (dailyStats[dateStr]) {
+          dailyStats[dateStr].online = payment.totalOnlinePayment;
         }
       });
 

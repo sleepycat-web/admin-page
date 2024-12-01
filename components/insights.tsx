@@ -24,21 +24,24 @@ interface DailyData {
   revenue: number;
   numberOfOrders: number;
   generalExpenses: number;
+  online?: number; // Add online property if not present
 }
 interface Totals {
   revenue: number;
+  online: number; // Ensure online is included
   orders: number;
   expenses: number;
   userCount: number;
   newUserCount: number;
-  profit: number; // Add this line
+  profit: number;
 }
 
 interface Growth {
   revenue: number;
+  online: number; // Ensure online is included
   orders: number;
   expenses: number;
-  profit: number; // Add this line
+  profit: number;
 }
 
 const CUTOFF_DATE = new Date("2024-09-20T00:00:00Z");
@@ -48,8 +51,6 @@ interface InsightsComponentProps {
   selectedBranch: string;
 }
 
- 
-
 const InsightsComponent: React.FC<InsightsComponentProps> = ({
   dateRange,
   selectedBranch,
@@ -57,21 +58,24 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [totals, setTotals] = useState<Totals>({
     revenue: 0,
+    online: 0, // Initialize online
     orders: 0,
     expenses: 0,
     userCount: 0,
     newUserCount: 0,
-    profit: 0,  
-  }); const [isGrowth, setIsGrowth] = useState<boolean>(true);
-  
+    profit: 0,
+  });
+  const [isGrowth, setIsGrowth] = useState<boolean>(true);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
- const [growth, setGrowth] = useState<Growth>({
-   revenue: 0,
-   orders: 0,
-   expenses: 0,
-   profit: 0,  
- });
+  const [growth, setGrowth] = useState<Growth>({
+    revenue: 0,
+    online: 0, // Initialize online
+    orders: 0,
+    expenses: 0,
+    profit: 0,
+  });
   const fetchInsightsData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -113,9 +117,9 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
       const { totalCount: userCount, newUserCount } =
         await userCountResponse.json();
 
-     const percentages: Growth = await percentageResponse.json();
+      const percentages: Growth = await percentageResponse.json();
       setGrowth(percentages);
-       
+
       setIsGrowth(dateRange.start > CUTOFF_DATE);
       if (!Array.isArray(data)) {
         throw new Error("Received data is not an array");
@@ -134,72 +138,75 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
 
       setDailyData(sortedData);
 
+      // Update totals calculation to include online payments
       const newTotals = sortedData.reduce(
         (acc: Totals, day: DailyData) => ({
           revenue: acc.revenue + day.revenue,
+          online: acc.online + (day.online || 0), // Add online payments
           orders: acc.orders + day.numberOfOrders,
           expenses: acc.expenses + day.generalExpenses,
           userCount: userCount,
           newUserCount: newUserCount,
-          profit: acc.profit + (day.revenue - day.generalExpenses), // Add this line
+          profit: acc.profit + (day.revenue - day.generalExpenses),
         }),
         {
           revenue: 0,
+          online: 0, // Initialize online
           orders: 0,
           expenses: 0,
           userCount: userCount,
           newUserCount: newUserCount,
-          profit: 0, // Add this line
+          profit: 0,
         }
       );
 
-     const isAllTime = dateRange.start.getTime() === 0;
+      const isAllTime = dateRange.start.getTime() === 0;
 
-     // Determine the effective start date
-     const effectiveStartDate = isAllTime
-       ? CUTOFF_DATE
-       : dateRange.start < CUTOFF_DATE
-       ? CUTOFF_DATE
-       : dateRange.start;
+      // Determine the effective start date
+      const effectiveStartDate = isAllTime
+        ? CUTOFF_DATE
+        : dateRange.start < CUTOFF_DATE
+        ? CUTOFF_DATE
+        : dateRange.start;
 
-     // Calculate the number of days in the effective range
-     const daysDiff = Math.max(
-       1,
-       Math.ceil(
-         (dateRange.end.getTime() - effectiveStartDate.getTime()) /
-           (1000 * 60 * 60 * 24)
-       )
-     );
+      // Calculate the number of days in the effective range
+      const daysDiff = Math.max(
+        1,
+        Math.ceil(
+          (dateRange.end.getTime() - effectiveStartDate.getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+      );
 
-     // Filter data to only include entries from the effective start date
-     const effectiveData = validData.filter(
-       (day) => new Date(day.date) >= effectiveStartDate
-     );
+      // Filter data to only include entries from the effective start date
+      const effectiveData = validData.filter(
+        (day) => new Date(day.date) >= effectiveStartDate
+      );
 
-     // For "All Time" selection or when start date is before cutoff, use the length of effectiveData
-     // Otherwise, use daysDiff
-     const effectiveDays =
-       isAllTime || dateRange.start < CUTOFF_DATE
-         ? effectiveData.length
-         : daysDiff;
+      // For "All Time" selection or when start date is before cutoff, use the length of effectiveData
+      // Otherwise, use daysDiff
+      const effectiveDays =
+        isAllTime || dateRange.start < CUTOFF_DATE
+          ? effectiveData.length
+          : daysDiff;
 
-     // Determine if it's a growth scenario
-     const isGrowthScenario = !isAllTime && effectiveStartDate > CUTOFF_DATE;
+      // Determine if it's a growth scenario
+      const isGrowthScenario = !isAllTime && effectiveStartDate > CUTOFF_DATE;
       setIsGrowth(isGrowthScenario);
-      
-        if (!isGrowthScenario) {
-          // Calculate daily averages
-          const averages = {
-            revenue: newTotals.revenue / effectiveDays,
-            orders: newTotals.orders / effectiveDays,
-            expenses: newTotals.expenses / effectiveDays,
-            profit: newTotals.profit / effectiveDays,
-          };
-          setGrowth(averages);
-        } else {
-          // If it's a growth scenario, use the percentages from the API
-          setGrowth(percentages);
-        }
+
+      if (!isGrowthScenario) {
+        // Calculate daily averages
+        const averages = {
+          revenue: newTotals.revenue / effectiveDays,
+          online: newTotals.online / effectiveDays, // Calculate average online payments
+          orders: newTotals.orders / effectiveDays,
+          expenses: newTotals.expenses / effectiveDays,
+          profit: newTotals.profit / effectiveDays,
+        };
+        setGrowth(averages);
+      } else {
+        setGrowth(percentages);
+      }
       setTotals(newTotals);
       setError(null);
     } catch (error) {
@@ -261,50 +268,50 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
       maximumFractionDigits: 2,
     }).format(value);
   };
- 
+
 
   // Update the renderGrowthOrAverage function
- const renderGrowthOrAverage = (
-   value: number,
-   metricName: keyof typeof growth
- ) => {
-   if (isGrowth) {
-     const isPositive = value > 0;
-     const color = isPositive ? "text-green-500" : "text-red-500";
-     const Icon = isPositive ? TrendingUp : TrendingDown;
-     return (
-       <span className={`${color} flex items-center`}>
-         {Math.abs(value).toFixed(2)}%
-         <Icon className="ml-1" />
-       </span>
-     );
-   } else {
-     const displayValue = isNaN(value) ? 0 : value;
+  const renderGrowthOrAverage = (
+    value: number,
+    metricName: keyof typeof growth
+  ) => {
+    if (isGrowth) {
+      const isPositive = value > 0;
+      const color = isPositive ? "text-green-500" : "text-red-500";
+      const Icon = isPositive ? TrendingUp : TrendingDown;
+      return (
+        <span className={`${color} flex items-center`}>
+          {Math.abs(value).toFixed(2)}%
+          <Icon className="ml-1" />
+        </span>
+      );
+    } else {
+      const displayValue = isNaN(value) ? 0 : value;
 
-     if (metricName === "orders") {
-       return (
-         <span className="text-neutral-400">
-           Avg: {Math.floor(displayValue)} / day
-         </span>
-       );
-     } else {
-       return (
-         <span className="text-neutral-400">
-           Avg: ₹{displayValue.toFixed(2)} / day
-         </span>
-       );
-     }
-   }
- };
+      if (metricName === "orders") {
+        return (
+          <span className="text-neutral-400">
+            Avg: {Math.floor(displayValue)} / day
+          </span>
+        );
+      } else {
+        return (
+          <span className="text-neutral-400">
+            Avg: ₹{displayValue.toFixed(2)} / day
+          </span>
+        );
+      }
+    }
+  };
 
-
+  
 
   return (
     <div className="space-y-4">
       {error && (
         <div className="text-red-500 p-4 bg-red-100 rounded">{error}</div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             Total Revenue
@@ -330,7 +337,30 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            Total Orders
+            Online Payments
+          </CardHeader>
+          <CardContent>
+            <div className="">
+              {isLoading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">
+                    {" "}
+                    {formatCurrency(totals.online)}
+                  </div>
+
+                  <div className="text-xs">
+                    {renderGrowthOrAverage(growth.online, "online")}
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            Orders
           </CardHeader>
           <CardContent>
             <div className="">
@@ -349,7 +379,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            Total Expenses
+            Expenses
           </CardHeader>
           <CardContent>
             <div className="">
@@ -391,7 +421,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            Total Users
+            Users
           </CardHeader>
           <CardContent>
             {isLoading ? (
