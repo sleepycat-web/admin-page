@@ -1,4 +1,4 @@
-import React, { useState, ReactNode, useRef, useEffect } from "react";
+import React, { useState, ReactNode, useRef, useEffect, useCallback } from "react";
 import {
   Ban as BanIcon,
   ChartColumn,
@@ -154,7 +154,7 @@ const Sidebar = () => {
     );
   };
 
-  const renderComponent = () => {
+  const renderComponent = useCallback(() => {
     if (mountedComponents[activeComponent]) {
       return;
     }
@@ -181,7 +181,7 @@ const Sidebar = () => {
     }
 
     setMountedComponents((prev) => ({ ...prev, [activeComponent]: component }));
-  };
+  }, [activeComponent, mountedComponents]);
 
   useEffect(() => {
     renderComponent();
