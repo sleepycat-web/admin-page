@@ -139,6 +139,7 @@ export default async function handler(
       );
 
       // Fetch online Payment expenses
+      // Change the onlinePaymentsPromises mapping to correctly aggregate from all expense collections
       const onlinePaymentsPromises = expenseCollections.map((collection) =>
         db
           .collection(collection)
@@ -155,7 +156,7 @@ export default async function handler(
                         5.5 * 60 * 60 * 1000, // Subtract 5 hours and 30 minutes
                       ],
                     },
-                    timezone: "+00:00", // Use UTC
+                    timezone: "+00:00",
                   },
                 },
                 totalOnlinePayment: { $sum: "$amount" },
@@ -229,10 +230,11 @@ export default async function handler(
       });
 
       // Process online payment data
+      // Ensure that online payments are summed across all collections
       onlinePayments.forEach((payment) => {
         const dateStr = payment._id;
         if (dailyStats[dateStr]) {
-          dailyStats[dateStr].online = payment.totalOnlinePayment;
+          dailyStats[dateStr].online = (dailyStats[dateStr].online || 0) + payment.totalOnlinePayment;
         }
       });
 
