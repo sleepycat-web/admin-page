@@ -62,7 +62,7 @@ const handleDateRangeChange = (value: string) => {
   );
 
   // Adjust by 5 hours 30 minutes (5.5 hours)
-  const offsetHours = 5.5;
+  // const offsetHours = 5.5;
   start.setUTCHours(0, 0, 0, 0);
   end.setUTCHours(23, 59, 59, 999);
 
