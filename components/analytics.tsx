@@ -49,96 +49,91 @@ const handleDateReset = () => {
 
 const handleDateRangeChange = (value: string) => {
   setSelectedDateRange(value);
-  const now = new Date();
-  let start = new Date();
-  let end = new Date();
 
-  // Add 5.5 hours to now, start, and end
-  now.setTime(now.getTime() + 5.5 * 60 * 60 * 1000);
-  start.setTime(start.getTime() + 5.5 * 60 * 60 * 1000);
-  end.setTime(end.getTime() + 5.5 * 60 * 60 * 1000);
+  // Get current UTC time
+  const now = new Date();
+
+  // Create start and end dates in UTC
+  let start = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  let end = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+
+  // Adjust by 5 hours 30 minutes (5.5 hours)
+  const offsetHours = 5.5;
+  start.setUTCHours(0, 0, 0, 0);
+  end.setUTCHours(23, 59, 59, 999);
 
   switch (value) {
     case "today":
-      // Today: 00:00 AM to 11:59 PM
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
+      // Today in UTC: 00:00 to 23:59
       break;
 
     case "yesterday":
-      // Yesterday: 00:00 AM to 11:59 PM
-      start = new Date(now);
-      start.setDate(start.getDate() - 1);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(start);
-      end.setHours(23, 59, 59, 999);
+      // Yesterday in UTC
+      start.setUTCDate(start.getUTCDate() - 1);
+      end.setUTCDate(end.getUTCDate() - 1);
       break;
 
     case "thisWeek":
-      // This week: From Monday to today
-      start = new Date(now);
-      const dayOfWeek = start.getDay();
-      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Adjust for Monday
-      start.setDate(start.getDate() + mondayOffset);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
+      // This week: From Monday to today in UTC
+      const dayOfWeek = start.getUTCDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      start.setUTCDate(start.getUTCDate() + mondayOffset);
       break;
 
     case "previousWeek":
-      // Previous week: Monday to Sunday
-      start = new Date(now);
-      const lastSundayOffset = start.getDay() === 0 ? -7 : -start.getDay();
-      end.setDate(end.getDate() + lastSundayOffset);
-      end.setHours(23, 59, 59, 999);
-
+      // Previous week in UTC: Monday to Sunday
+      const lastSundayOffset =
+        start.getUTCDay() === 0 ? -7 : -start.getUTCDay();
+      end.setUTCDate(end.getUTCDate() + lastSundayOffset);
       start = new Date(end);
-      start.setDate(start.getDate() - 6); // Previous Monday
-      start.setHours(0, 0, 0, 0);
+      start.setUTCDate(start.getUTCDate() - 6);
+      start.setUTCHours(0, 0, 0, 0);
+      end.setUTCHours(23, 59, 59, 999);
       break;
 
     case "thisMonth":
-      // This month: From 1st to today
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
+      // This month in UTC: From 1st to today
+      start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      start.setUTCHours(0, 0, 0, 0);
       break;
 
     case "previousMonth":
-      // Previous month: From 1st to last day of the previous month
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      end = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
+      // Previous month in UTC
+      start = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)
+      );
+      end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
+      start.setUTCHours(0, 0, 0, 0);
+      end.setUTCHours(23, 59, 59, 999);
       break;
 
     case "thisYear":
-      // This year: From 1st January to today
-      start = new Date(now.getFullYear(), 0, 1);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
+      // This year in UTC: From 1st January to today
+      start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+      start.setUTCHours(0, 0, 0, 0);
       break;
 
     case "previousYear":
-      // Previous year: From 1st January to 31st December of the previous year
-      start = new Date(now.getFullYear() - 1, 0, 1);
-      end = new Date(now.getFullYear() - 1, 11, 31);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
+      // Previous year in UTC
+      start = new Date(Date.UTC(now.getUTCFullYear() - 1, 0, 1));
+      end = new Date(Date.UTC(now.getUTCFullYear() - 1, 11, 31));
+      start.setUTCHours(0, 0, 0, 0);
+      end.setUTCHours(23, 59, 59, 999);
       break;
 
     case "allTime":
-      start = new Date(0); // Beginning of time (1970)
+      start = new Date(0); // Beginning of time in UTC
       end = new Date();
-      end.setHours(23, 59, 59, 999);
+      end.setUTCHours(23, 59, 59, 999);
       break;
 
     case "custom":
-       return; // Don't update dateRange for custom selection
+      return; // Don't update dateRange for custom selection
   }
-
-  // Add 5.5 hours to start and end
-  start.setTime(start.getTime() + 5.5 * 60 * 60 * 1000);
-  end.setTime(end.getTime() + 5.5 * 60 * 60 * 1000);
 
   setDateRange({ start, end });
   setCustomDateRange(undefined);
@@ -214,7 +209,7 @@ const handleTabChange = (tab: string) => {
   //     </p>
   //   );
   // };
-
+  console.log(dateRange)
    return (
      <div className="p-4 space-y-4">
        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">

@@ -5,15 +5,18 @@ import {
   Menu as MenuIcon,
   X as XIcon,
   FileText as DatabaseIcon,
+  User,
+  IndianRupee,
+  BadgePercent, // New import
 } from "lucide-react";
 import AnalyticsComp from "./analytics";
 import BanComp from "./ban";
 import BanDataComp from "./bandata";
 import { Button } from "@/components/ui/button";
-import { User } from "lucide-react";
-import { IndianRupee } from "lucide-react";
 import UserDataComp from "./userdata";
 import CashBalanceComp from "./cashbalance";
+import PromoComp from "./promo"; // New import
+
 // Placeholder components for Analytics, Ban, and BanData
 const Analytics = () => (
   <div>
@@ -40,6 +43,11 @@ const UserDataComponent = () => (
     <UserDataComp />
   </div>
 );
+const PromoComponent = () => (
+  <div>
+    <PromoComp />
+  </div>
+);
 
 interface ContentWrapperProps {
   children: ReactNode;
@@ -56,7 +64,8 @@ type ComponentType =
   | "ban"
   | "banData"
   | "userData"
-  | "cashBalance";
+  | "cashBalance"
+  | "promo"; // Added "promo"
 
 interface NavButtonProps {
   icon: React.ReactNode;
@@ -146,6 +155,11 @@ const Sidebar = () => {
       label: "Cash Balance",
       component: "cashBalance",
     },
+    {
+      icon: <BadgePercent className="h-4 w-4" />, // New icon
+      label: "Promo Codes",
+      component: "promo",
+    },
   ];
 
   const getActiveComponentLabel = () => {
@@ -175,6 +189,9 @@ const Sidebar = () => {
         break;
       case "cashBalance":
         component = <CashBalanceComponent />;
+        break;
+      case "promo":
+        component = <PromoComponent />;
         break;
       default:
         component = <Analytics />;
