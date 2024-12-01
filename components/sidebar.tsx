@@ -51,7 +51,12 @@ const ContentWrapper: React.FC<ContentWrapperProps> = ({
   className,
 }) => <div className={className}>{children}</div>;
 
-type ComponentType = "analytics" | "ban" | "banData" |"userData"| "cashBalance";
+type ComponentType =
+  | "analytics"
+  | "ban"
+  | "banData"
+  | "userData"
+  | "cashBalance";
 
 interface NavButtonProps {
   icon: React.ReactNode;
@@ -65,7 +70,9 @@ const Sidebar = () => {
     useState<ComponentType>("analytics");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const [mountedComponents, setMountedComponents] = useState<{ [key in ComponentType]?: React.ReactNode }>({});
+  const [mountedComponents, setMountedComponents] = useState<{
+    [key in ComponentType]?: React.ReactNode;
+  }>({});
   const [mountKey, setMountKey] = useState(0);
 
   useEffect(() => {
@@ -178,7 +185,7 @@ const Sidebar = () => {
 
   useEffect(() => {
     renderComponent();
-  }, [activeComponent]);
+  }, [activeComponent, renderComponent]);
 
   return (
     <div className="flex flex-col min-h-screen">
