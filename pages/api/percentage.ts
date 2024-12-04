@@ -82,11 +82,16 @@ export default async function handler(
           excludedExpensesResult,
           additionalRevenueResult,
         ] = await Promise.all([
-         //order result
+          //order result
           db
             .collection(orderCollection)
             .aggregate([
-              { $match: dateQuery },
+              {
+                $match: {
+                  ...dateQuery,
+                  status: "fulfilled",
+                },
+              },
               {
                 $group: {
                   _id: null,
