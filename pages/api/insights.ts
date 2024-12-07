@@ -65,12 +65,19 @@ export default async function handler(
         category: "UPI Payment",
       };
 
+      // Define booking query
+      const bookingQuery = {
+        createdAt: { $gte: startDateTime, $lt: endDateTime },
+      };
+
       // Determine collections based on branch
       let orderCollections = ["OrderSevoke", "OrderDagapur"];
       let expenseCollections = ["ExpenseSevoke", "ExpenseDagapur"];
+      let bookingCollections = ["BookingSevoke", "BookingDagapur"];
       if (branch !== "all") {
         orderCollections = [`Order${branch}`];
         expenseCollections = [`Expense${branch}`];
+        bookingCollections = [`Booking${branch}`];
       }
 
       // Fetch orders
@@ -166,13 +173,41 @@ export default async function handler(
           .toArray()
       );
 
+      // Fetch bookings
+      const bookingPromises = bookingCollections.map((collection) =>
+        db
+          .collection(collection)
+          .aggregate([
+            { $match: bookingQuery },
+            {
+              $group: {
+                _id: {
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: {
+                      $subtract: [
+                        "$createdAt",
+                        5.5 * 60 * 60 * 1000, // Subtract 5 hours and 30 minutes
+                      ],
+                    },
+                    timezone: "+00:00",
+                  },
+                },
+                totalBookings: { $sum: "$finalPrice" },
+              },
+            },
+          ])
+          .toArray()
+      );
+
       // Wait for all promises to resolve
-      const [ordersArrays, extraPaymentsArrays, expensesArrays, onlinePaymentsArrays] =
+      const [ordersArrays, extraPaymentsArrays, expensesArrays, onlinePaymentsArrays, bookingsArrays] =
         await Promise.all([
           Promise.all(orderPromises),
           Promise.all(extraPaymentsPromises),
           Promise.all(expensesPromises),
-          Promise.all(onlinePaymentsPromises),  // Changed from upiPaymentsPromises
+          Promise.all(onlinePaymentsPromises),
+          Promise.all(bookingPromises),
         ]);
 
       // Flatten the results
@@ -180,6 +215,7 @@ export default async function handler(
       const extraPayments = extraPaymentsArrays.flat();
       const expenses = expensesArrays.flat();
       const onlinePayments = onlinePaymentsArrays.flat();
+      const bookings = bookingsArrays.flat();
 
       // Process data day by day
       const dailyStats: { [key: string]: DailyStats } = {};
@@ -235,6 +271,15 @@ export default async function handler(
         const dateStr = payment._id;
         if (dailyStats[dateStr]) {
           dailyStats[dateStr].online = (dailyStats[dateStr].online || 0) + payment.totalOnlinePayment;
+        }
+      });
+
+      // Process bookings
+      bookings.forEach((booking) => {
+        const dateStr = booking._id;
+        if (dailyStats[dateStr]) {
+          dailyStats[dateStr].revenue += booking.totalBookings;
+          dailyStats[dateStr].online = (dailyStats[dateStr].online || 0) + booking.totalBookings;
         }
       });
 
