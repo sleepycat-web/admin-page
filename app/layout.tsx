@@ -21,7 +21,7 @@ export const metadata: Metadata = {
              enableSystem
              disableTransitionOnChange
            >
-             {children}
+             <ClientLayout>{children}</ClientLayout>
            </ThemeProvider>
          </body>
        </html>
