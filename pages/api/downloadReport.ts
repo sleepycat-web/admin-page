@@ -52,13 +52,19 @@ export default async function handler(
         category: "Extra Cash Payment",
       };
 
+      const bookingQuery = {
+        createdAt: { $gte: startDateTime, $lt: endDateTime },
+      };
+
       // Determine collections based on branch
       let orderCollections = ["OrderSevoke", "OrderDagapur"];
       let expenseCollections = ["ExpenseSevoke", "ExpenseDagapur"];
+      let bookingCollections = ["BookingSevoke", "BookingDagapur"];
       let branchName = "Sevoke Road, Dagapur";
       if (branch !== "all") {
         orderCollections = [`Order${branch}`];
         expenseCollections = [`Expense${branch}`];
+        bookingCollections = [`Booking${branch}`];
         branchName = branch === "Sevoke" ? "Sevoke Road" : "Dagapur";
       }
 
@@ -68,6 +74,7 @@ export default async function handler(
         expensesArrays,
         onlinePaymentsArrays,
         extraCashArrays,
+        bookingsArrays,
       ] = await Promise.all([
         Promise.all(
           orderCollections.map((collection) =>
@@ -147,6 +154,28 @@ export default async function handler(
               .toArray()
           )
         ),
+        Promise.all(
+          bookingCollections.map((collection) =>
+            db
+              .collection(collection)
+              .aggregate([
+                { $match: bookingQuery },
+                {
+                  $group: {
+                    _id: {
+                      $dateToString: {
+                        format: "%Y-%m-%d",
+                        date: "$createdAt",
+                        timezone: "+05:30",
+                      },
+                    },
+                    total: { $sum: "$amount" },
+                  },
+                },
+              ])
+              .toArray()
+          )
+        ),
       ]);
 
       // Flatten the results
@@ -154,6 +183,7 @@ export default async function handler(
       const expenses = expensesArrays.flat();
       const onlinePayments = onlinePaymentsArrays.flat();
       const extraCash = extraCashArrays.flat();
+      const bookings = bookingsArrays.flat();
 
       // Process data day by day
       const dailyData: Record<
@@ -220,6 +250,15 @@ export default async function handler(
         const dateStr = cash._id;
         if (dailyData[dateStr]) {
           dailyData[dateStr].revenue += cash.total;
+        }
+      });
+
+      // Process bookings
+      bookings.forEach((booking) => {
+        const dateStr = booking._id;
+        if (dailyData[dateStr]) {
+          dailyData[dateStr].revenue += booking.total;
+          dailyData[dateStr].onlinePayments += booking.total;
         }
       });
 
