@@ -534,7 +534,9 @@ const filterAndSortOrders = useCallback(() => {
             <div className=" text-gray-300">
               Promo Code Usage: {promoCodePercentage.toFixed(2)}%
             </div>
-
+            <div className="font-semibold text-lg">
+              Order Count: {orders.length}
+            </div>
             <div className="font-semibold text-lg">
               Total of All Orders: ₹{totalOrdersSum.toFixed(2)}
             </div>
