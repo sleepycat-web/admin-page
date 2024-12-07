@@ -9,20 +9,27 @@ export const metadata: Metadata = {
   description: "",
 };
 
-const RootLayout = ({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) => {
-  return (
-    <html lang="en" className=" dark">
-      <body className="dark font-poppins">
-        <ThemeProvider>
-          <ClientLayout>{children}</ClientLayout>
-        </ThemeProvider>
-      </body>
-    </html>
-  );
-};
+ const RootLayout = ({ children }: { children: React.ReactNode }) => {
+   return (
+     <>
+       <html lang="en" suppressHydrationWarning>
+         <head />
+         <body>
+           <ThemeProvider
+             attribute="class"
+             defaultTheme="dark"
+             enableSystem
+             disableTransitionOnChange
+           >
+             {children}
+           </ThemeProvider>
+         </body>
+       </html>
+     </>
+   );
+ };
 
-export default RootLayout;
+ export default RootLayout;
+
+
+ 
