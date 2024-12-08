@@ -347,7 +347,7 @@ const fetchBookings = useCallback(async () => {
           {showAll ? "Show Paginated" : "Show All"}
         </Button>
       </div>
-       
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -431,11 +431,7 @@ const fetchBookings = useCallback(async () => {
                   <TableCell>{booking.name}</TableCell>
                   <TableCell>{booking.phone}</TableCell>
                   <TableCell>₹{booking.finalPrice.toFixed(2)}</TableCell>
-                  <TableCell>
-                    {formatDate(
-                      booking.modifiedAt ? booking.modifiedAt : booking.createdAt
-                    )}
-                  </TableCell>
+                  <TableCell>{formatDate(booking.createdAt)}</TableCell>
                   {showBranchColumn && (
                     <TableCell>{booking.location}</TableCell>
                   )}
@@ -443,9 +439,7 @@ const fetchBookings = useCallback(async () => {
                 {expandedBookings.has(booking._id) && (
                   <TableRow>
                     <TableCell colSpan={showBranchColumn ? 6 : 5}>
-                      <div className="p-4">
-                        {renderBookingDetails(booking)}
-                      </div>
+                      <div className="p-4">{renderBookingDetails(booking)}</div>
                     </TableCell>
                   </TableRow>
                 )}
