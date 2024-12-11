@@ -179,7 +179,7 @@ const BanComp: React.FC = () => {
       </h1>
       <div className="flex space-x-2">
         <Input
-          className="md:w-1/3"
+          className=" max-w-sm"
           placeholder="Enter phone number"
           value={phoneNumber}
           onChange={handlePhoneNumberChange}
