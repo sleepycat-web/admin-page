@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight , Edit, Trash2} from "lucide-react";
 
 interface User {
   name: string;
@@ -388,7 +388,7 @@ const UserDataComp: React.FC = () => {
                             variant="outline"
                             onClick={() => handleEdit(user)}
                           >
-                            Edit
+                            <Edit className="h-4 w-4" />
                           </Button>
                         </DialogTrigger>
                         <DialogContent>
@@ -410,7 +410,7 @@ const UserDataComp: React.FC = () => {
                         onClick={() => handleDelete(user)}
                         className="ml-2"
                       >
-                        Delete
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
