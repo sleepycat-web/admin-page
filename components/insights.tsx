@@ -401,7 +401,7 @@ const InsightsComponent: React.FC<InsightsComponentProps> = ({
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            Gross Profit
+            Net Profit
           </CardHeader>
           <CardContent>
             {isLoading ? (
